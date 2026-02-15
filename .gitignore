@@ -19,3 +19,6 @@ todo
 
 # Local config
 rewinder.toml
+
+# Generated test fixtures
+tests/fixtures/media/
