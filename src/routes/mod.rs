@@ -1,6 +1,7 @@
 pub mod admin;
 pub mod auth;
 pub mod movies;
+pub mod sort;
 pub mod tv;
 
 use crate::config::AppConfig;

@@ -114,7 +114,10 @@ async fn tv_sort_by_season_desc() {
     let body = body_string(response).await;
     let season2_idx = body.find("Season 2").unwrap();
     let season1_idx = body.find("Season 1").unwrap();
-    assert!(season2_idx < season1_idx, "expected Season 2 before Season 1");
+    assert!(
+        season2_idx < season1_idx,
+        "expected Season 2 before Season 1"
+    );
 }
 
 #[tokio::test]

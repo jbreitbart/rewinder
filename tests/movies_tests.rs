@@ -257,9 +257,20 @@ async fn movies_sort_by_added_desc() {
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
 
-    insert_movie(&pool, "First Movie", "/movies/First Movie (2000)").await;
-    tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
-    insert_movie(&pool, "Second Movie", "/movies/Second Movie (2001)").await;
+    let first_id = insert_movie(&pool, "First Movie", "/movies/First Movie (2000)").await;
+    let second_id = insert_movie(&pool, "Second Movie", "/movies/Second Movie (2001)").await;
+
+    // Set distinct first_seen values without sleeping
+    sqlx::query("UPDATE media SET first_seen = '2024-01-01 00:00:00' WHERE id = ?")
+        .bind(first_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE media SET first_seen = '2024-06-01 00:00:00' WHERE id = ?")
+        .bind(second_id)
+        .execute(&pool)
+        .await
+        .unwrap();
 
     let app = test_app(pool, config, true);
     let response = app

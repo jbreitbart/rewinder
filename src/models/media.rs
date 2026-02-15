@@ -79,18 +79,32 @@ pub async fn mark_gone_except(pool: &SqlitePool, seen_paths: &[String]) -> Resul
         return Ok(());
     }
 
-    // Mark active items as gone if their path wasn't seen
-    // SQLite doesn't support array binds, so we build placeholders
-    let placeholders: Vec<&str> = seen_paths.iter().map(|_| "?").collect();
-    let query = format!(
-        "UPDATE media SET status = 'gone' WHERE status = 'active' AND path NOT IN ({})",
-        placeholders.join(",")
-    );
-    let mut q = sqlx::query(&query);
-    for path in seen_paths {
-        q = q.bind(path);
+    // Use a temp table to avoid hitting SQLITE_MAX_VARIABLE_NUMBER with large libraries.
+    sqlx::query("CREATE TEMP TABLE IF NOT EXISTS _seen_paths (path TEXT NOT NULL)")
+        .execute(pool)
+        .await?;
+    sqlx::query("DELETE FROM _seen_paths").execute(pool).await?;
+
+    for chunk in seen_paths.chunks(500) {
+        let placeholders: Vec<&str> = chunk.iter().map(|_| "(?)").collect();
+        let query = format!(
+            "INSERT INTO _seen_paths (path) VALUES {}",
+            placeholders.join(",")
+        );
+        let mut q = sqlx::query(&query);
+        for path in chunk {
+            q = q.bind(path);
+        }
+        q.execute(pool).await?;
     }
-    q.execute(pool).await?;
+
+    sqlx::query(
+        "UPDATE media SET status = 'gone' WHERE status = 'active' AND path NOT IN (SELECT path FROM _seen_paths)",
+    )
+    .execute(pool)
+    .await?;
+
+    sqlx::query("DELETE FROM _seen_paths").execute(pool).await?;
     Ok(())
 }
 

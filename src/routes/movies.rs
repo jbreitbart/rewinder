@@ -3,11 +3,11 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
 use serde::Deserialize;
-use std::cmp::Ordering;
 
 use crate::auth::middleware::AuthUser;
 use crate::error::AppError;
 use crate::models::{mark, media, user};
+use crate::routes::sort::{apply_sort_dir, SortDir};
 use crate::routes::AppState;
 use crate::templates::{MediaRow, MediaRowPartial, MoviesTemplate};
 
@@ -29,28 +29,6 @@ struct ListQuery {
     sort: Option<String>,
     #[serde(default)]
     dir: Option<String>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum SortDir {
-    Asc,
-    Desc,
-}
-
-impl SortDir {
-    fn parse(value: Option<&str>) -> Self {
-        match value {
-            Some("desc") => SortDir::Desc,
-            _ => SortDir::Asc,
-        }
-    }
-
-    fn as_str(self) -> &'static str {
-        match self {
-            SortDir::Asc => "asc",
-            SortDir::Desc => "desc",
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -78,13 +56,6 @@ impl MovieSortBy {
             MovieSortBy::Marked => "marked",
             MovieSortBy::Added => "added",
         }
-    }
-}
-
-fn apply_sort_dir(ordering: Ordering, sort_dir: SortDir) -> Ordering {
-    match sort_dir {
-        SortDir::Asc => ordering,
-        SortDir::Desc => ordering.reverse(),
     }
 }
 
