@@ -33,14 +33,19 @@ pub async fn test_pool() -> SqlitePool {
     pool
 }
 
-pub fn test_config(trash_dir: PathBuf, media_dirs: Vec<PathBuf>) -> AppConfig {
+pub fn test_config(media_dirs: Vec<PathBuf>) -> AppConfig {
+    let media_dirs = if media_dirs.is_empty() {
+        vec![PathBuf::from("/movies"), PathBuf::from("/tv")]
+    } else {
+        media_dirs
+    };
+
     AppConfig {
         database_url: ":memory:".to_string(),
         listen_addr: "127.0.0.1:0".to_string(),
-        session_ttl_hours: 720,
         media_dirs,
-        trash_dir,
         grace_period_days: 7,
+        cleanup_interval_hours: 1,
         initial_admin_user: None,
     }
 }

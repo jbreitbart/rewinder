@@ -68,7 +68,9 @@ async fn mark_movie(
     mark::mark(&state.pool, auth.id, id).await?;
 
     // Check if all users marked → move to trash
-    let _ = crate::trash::check_and_trash(&state.pool, id, &state.config.trash_dir, state.dry_run).await;
+    crate::trash::check_and_trash(&state.pool, id, &state.config, state.dry_run)
+        .await
+        .map_err(|e| AppError::Internal(format!("trash operation failed: {e}")))?;
 
     // Re-fetch to get updated state
     let media_item = media::get_by_id(&state.pool, id).await?.unwrap_or(m);

@@ -1,7 +1,6 @@
 mod common;
 
 use axum::http::StatusCode;
-use std::path::PathBuf;
 use tower::ServiceExt;
 
 use common::*;
@@ -9,7 +8,7 @@ use common::*;
 #[tokio::test]
 async fn non_admin_redirected_from_admin() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
 
@@ -25,7 +24,7 @@ async fn non_admin_redirected_from_admin() {
 #[tokio::test]
 async fn admin_dashboard() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (admin_id, _) = create_test_user(&pool, "admin", true).await;
     let cookie = login_cookie(&pool, admin_id).await;
 
@@ -41,7 +40,7 @@ async fn admin_dashboard() {
 #[tokio::test]
 async fn admin_create_user() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (admin_id, _) = create_test_user(&pool, "admin", true).await;
     let cookie = login_cookie(&pool, admin_id).await;
 
@@ -63,7 +62,7 @@ async fn admin_create_user() {
 #[tokio::test]
 async fn admin_delete_user() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (admin_id, _) = create_test_user(&pool, "admin", true).await;
     let cookie = login_cookie(&pool, admin_id).await;
 
@@ -89,7 +88,7 @@ async fn admin_delete_user() {
 #[tokio::test]
 async fn admin_trash_page() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (admin_id, _) = create_test_user(&pool, "admin", true).await;
     let cookie = login_cookie(&pool, admin_id).await;
 
@@ -105,7 +104,7 @@ async fn admin_trash_page() {
 #[tokio::test]
 async fn admin_rescue_from_trash() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (admin_id, _) = create_test_user(&pool, "admin", true).await;
     let cookie = login_cookie(&pool, admin_id).await;
 

@@ -1,7 +1,6 @@
 # rewinder.toml
 database_url = "sqlite:///data/rewinder.db?mode=rwc"
 listen_addr = "0.0.0.0:3000"
-session_ttl_hours = 720          # 30 days
 
 # Media directories to scan (Plex standard layout)
 media_dirs = [
@@ -9,10 +8,11 @@ media_dirs = [
     "/media/TV Shows",
 ]
 
-# Trash directory — MUST be outside media_dirs (or Plex will index it)
-# Should be on the same filesystem as media_dirs for atomic moves
-trash_dir = "/data/trash"
+# Trash directories are derived automatically from media_dirs:
+# "/media/Movies"   -> "/media/Movies_trash"
+# "/media/TV Shows" -> "/media/TV Shows_trash"
 grace_period_days = 7
+cleanup_interval_hours = 1       # Set to 0 to disable automatic cleanup
 
 # Optional: create admin user on first run
 initial_admin_user = "admin"

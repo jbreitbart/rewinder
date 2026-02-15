@@ -66,7 +66,9 @@ async fn mark_tv(
 
     mark::mark(&state.pool, auth.id, id).await?;
 
-    let _ = crate::trash::check_and_trash(&state.pool, id, &state.config.trash_dir, state.dry_run).await;
+    crate::trash::check_and_trash(&state.pool, id, &state.config, state.dry_run)
+        .await
+        .map_err(|e| AppError::Internal(format!("trash operation failed: {e}")))?;
 
     let media_item = media::get_by_id(&state.pool, id).await?.unwrap_or(m);
     let mark_count = mark::mark_count(&state.pool, id).await?;

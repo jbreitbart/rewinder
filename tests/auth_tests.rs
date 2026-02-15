@@ -1,7 +1,6 @@
 mod common;
 
 use axum::http::StatusCode;
-use std::path::PathBuf;
 use tower::ServiceExt;
 
 use common::*;
@@ -9,7 +8,7 @@ use common::*;
 #[tokio::test]
 async fn unauthenticated_redirects_to_login() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let app = test_app(pool, config, true);
 
     let response = app.oneshot(get("/movies")).await.unwrap();
@@ -23,7 +22,7 @@ async fn unauthenticated_redirects_to_login() {
 #[tokio::test]
 async fn login_page_returns_200() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let app = test_app(pool, config, true);
 
     let response = app.oneshot(get("/login")).await.unwrap();
@@ -33,7 +32,7 @@ async fn login_page_returns_200() {
 #[tokio::test]
 async fn login_with_valid_credentials() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let app = test_app(pool.clone(), config, true);
 
     let (_id, password) = create_test_user(&pool, "alice", false).await;
@@ -58,7 +57,7 @@ async fn login_with_valid_credentials() {
 #[tokio::test]
 async fn login_with_wrong_password() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let app = test_app(pool.clone(), config, true);
 
     create_test_user(&pool, "alice", false).await;
@@ -76,7 +75,7 @@ async fn login_with_wrong_password() {
 #[tokio::test]
 async fn logout_clears_session() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
 
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
@@ -109,7 +108,7 @@ async fn logout_clears_session() {
 #[tokio::test]
 async fn invite_flow() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
 
     // Create a user with an invite token
     let token = "test-invite-token-123";

@@ -1,7 +1,6 @@
 mod common;
 
 use axum::http::StatusCode;
-use std::path::PathBuf;
 use tower::ServiceExt;
 
 use common::*;
@@ -9,7 +8,7 @@ use common::*;
 #[tokio::test]
 async fn list_movies_empty() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
 
@@ -25,7 +24,7 @@ async fn list_movies_empty() {
 #[tokio::test]
 async fn list_movies_shows_items() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
 
@@ -47,7 +46,7 @@ async fn list_movies_shows_items() {
 #[tokio::test]
 async fn mark_movie() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
 
@@ -75,7 +74,7 @@ async fn mark_movie() {
 #[tokio::test]
 async fn unmark_movie() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
 
@@ -106,7 +105,7 @@ async fn unmark_movie() {
 #[tokio::test]
 async fn mark_nonexistent_movie() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
 
@@ -122,7 +121,7 @@ async fn mark_nonexistent_movie() {
 #[tokio::test]
 async fn movies_hides_marked_by_default() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     // Create a second user so marking doesn't trash the movie
     create_test_user(&pool, "bob", false).await;
@@ -150,7 +149,7 @@ async fn movies_hides_marked_by_default() {
 #[tokio::test]
 async fn movies_show_marked_param() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/trash"), vec![]);
+    let config = test_config(vec![]);
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     // Create a second user so marking doesn't trash the movie
     create_test_user(&pool, "bob", false).await;

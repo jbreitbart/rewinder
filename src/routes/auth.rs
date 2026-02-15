@@ -60,7 +60,7 @@ async fn login_handler(
         .into_response();
     }
 
-    let token = match session::create(&state.pool, user.id, state.config.session_ttl_hours).await {
+    let token = match session::create(&state.pool, user.id, session::DEFAULT_SESSION_TTL_HOURS).await {
         Ok(t) => t,
         Err(_) => {
             return LoginTemplate {
@@ -165,7 +165,7 @@ async fn invite_handler(
     }
 
     // Auto-login
-    let session_token = match session::create(&state.pool, user.id, state.config.session_ttl_hours).await {
+    let session_token = match session::create(&state.pool, user.id, session::DEFAULT_SESSION_TTL_HOURS).await {
         Ok(t) => t,
         Err(_) => return Redirect::to("/login").into_response(),
     };

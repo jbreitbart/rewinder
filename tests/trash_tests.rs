@@ -1,6 +1,5 @@
 mod common;
 
-use std::path::PathBuf;
 use tower::ServiceExt;
 
 use common::*;
@@ -8,7 +7,7 @@ use common::*;
 #[tokio::test]
 async fn all_users_mark_triggers_trash() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/rewinder-test-trash"), vec![]);
+    let config = test_config(vec![]);
 
     let (user1_id, _) = create_test_user(&pool, "alice", false).await;
     let (user2_id, _) = create_test_user(&pool, "bob", false).await;
@@ -55,7 +54,7 @@ async fn all_users_mark_triggers_trash() {
 #[tokio::test]
 async fn single_user_mark_trashes_immediately() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/rewinder-test-trash"), vec![]);
+    let config = test_config(vec![]);
 
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
@@ -84,7 +83,7 @@ async fn delete_user_triggers_auto_trash() {
     // Bob hasn't marked, so movie stays active. Delete bob → now all
     // remaining users have marked → movie gets trashed.
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/rewinder-test-trash"), vec![]);
+    let config = test_config(vec![]);
 
     let (user_a, _) = create_test_user(&pool, "alice", false).await;
     let (user_b, _) = create_test_user(&pool, "bob", false).await;
@@ -128,7 +127,7 @@ async fn delete_user_triggers_auto_trash() {
 #[tokio::test]
 async fn rescue_restores_and_clears_marks() {
     let pool = test_pool().await;
-    let config = test_config(PathBuf::from("/tmp/rewinder-test-trash"), vec![]);
+    let config = test_config(vec![]);
 
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let (admin_id, _) = create_test_user(&pool, "admin", true).await;
@@ -173,7 +172,6 @@ async fn rescue_restores_and_clears_marks() {
 
 #[tokio::test]
 async fn trash_with_real_filesystem() {
-    let trash_dir = tempfile::tempdir().unwrap();
     let media_dir = tempfile::tempdir().unwrap();
 
     // Create a movie directory with a file
@@ -182,7 +180,8 @@ async fn trash_with_real_filesystem() {
     std::fs::write(movie_path.join("movie.mkv"), "fake video content").unwrap();
 
     let pool = test_pool().await;
-    let config = test_config(trash_dir.path().to_path_buf(), vec![media_dir.path().to_path_buf()]);
+    let config = test_config(vec![media_dir.path().to_path_buf()]);
+    let trash_dir = rewinder::config::AppConfig::trash_dir_for_media_dir(media_dir.path()).unwrap();
 
     let (user_id, _) = create_test_user(&pool, "alice", false).await;
     let cookie = login_cookie(&pool, user_id).await;
@@ -212,7 +211,7 @@ async fn trash_with_real_filesystem() {
     // File should have moved to trash
     assert!(!movie_path.exists(), "original should be gone");
     assert!(
-        trash_dir.path().join("Test Movie (2020)").exists(),
+        trash_dir.join("Test Movie (2020)").exists(),
         "should be in trash"
     );
 
@@ -232,7 +231,73 @@ async fn trash_with_real_filesystem() {
     // File should be back
     assert!(movie_path.exists(), "movie should be restored");
     assert!(
-        !trash_dir.path().join("Test Movie (2020)").exists(),
+        !trash_dir.join("Test Movie (2020)").exists(),
         "trash should be empty"
+    );
+}
+
+#[tokio::test]
+async fn tv_trash_preserves_show_subdirectory() {
+    let media_dir = tempfile::tempdir().unwrap();
+
+    // Create a TV show season directory with a file
+    let show_path = media_dir.path().join("Breaking Bad");
+    let season_path = show_path.join("Season 1");
+    std::fs::create_dir_all(&season_path).unwrap();
+    std::fs::write(season_path.join("episode1.mkv"), "fake video content").unwrap();
+
+    let pool = test_pool().await;
+    let config = test_config(vec![media_dir.path().to_path_buf()]);
+    let trash_dir = rewinder::config::AppConfig::trash_dir_for_media_dir(media_dir.path()).unwrap();
+
+    let (user_id, _) = create_test_user(&pool, "alice", false).await;
+    let cookie = login_cookie(&pool, user_id).await;
+
+    let tv_id = rewinder::models::media::upsert(
+        &pool,
+        "tv_season",
+        "Breaking Bad",
+        None,
+        Some(1),
+        season_path.to_str().unwrap(),
+        100,
+    )
+    .await
+    .unwrap();
+
+    // Mark with dry_run: false — single user, should trash immediately
+    let app = test_app(pool.clone(), config.clone(), false);
+    app.oneshot(post_form_with_cookie(
+        &format!("/tv/{tv_id}/mark"),
+        "",
+        &cookie,
+    ))
+    .await
+    .unwrap();
+
+    // Season path should be preserved under trash
+    assert!(!season_path.exists(), "original season path should be gone");
+    assert!(
+        trash_dir.join("Breaking Bad").join("Season 1").exists(),
+        "season should be in nested trash path"
+    );
+
+    // Rescue
+    let (admin_id, _) = create_test_user(&pool, "admin", true).await;
+    let admin_cookie = login_cookie(&pool, admin_id).await;
+
+    let app = test_app(pool.clone(), config, false);
+    app.oneshot(post_form_with_cookie(
+        &format!("/admin/trash/{tv_id}/rescue"),
+        "",
+        &admin_cookie,
+    ))
+    .await
+    .unwrap();
+
+    assert!(season_path.exists(), "season path should be restored");
+    assert!(
+        !trash_dir.join("Breaking Bad").join("Season 1").exists(),
+        "nested trash path should be empty after rescue"
     );
 }
