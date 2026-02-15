@@ -81,6 +81,7 @@ async fn mark_tv(
             mark_count,
             total_users,
         },
+        is_admin: auth.is_admin,
     })
 }
 
@@ -105,5 +106,6 @@ async fn unmark_tv(
             mark_count,
             total_users,
         },
+        is_admin: auth.is_admin,
     })
 }

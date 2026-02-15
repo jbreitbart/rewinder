@@ -23,7 +23,9 @@
                 <th>Series</th>
                 <th>Season</th>
                 <th>Size</th>
+                {% if is_admin %}
                 <th>Marked</th>
+                {% endif %}
                 <th>Action</th>
             </tr>
         </thead>
@@ -32,7 +34,7 @@
             {% include "partials/media_row.html" %}
             {% endfor %}
             {% if items.len() == 0 %}
-            <tr><td colspan="5" class="empty">No TV shows found</td></tr>
+            <tr><td colspan="{% if is_admin %}5{% else %}4{% endif %}" class="empty">No TV shows found</td></tr>
             {% endif %}
         </tbody>
     </table>

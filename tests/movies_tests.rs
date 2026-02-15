@@ -171,3 +171,39 @@ async fn movies_show_marked_param() {
     let body = body_string(response).await;
     assert!(body.contains("Inception"));
 }
+
+#[tokio::test]
+async fn movies_hides_mark_counts_for_non_admins() {
+    let pool = test_pool().await;
+    let config = test_config(vec![]);
+    let (user_id, _) = create_test_user(&pool, "alice", false).await;
+    let cookie = login_cookie(&pool, user_id).await;
+    insert_movie(&pool, "Inception", "/movies/Inception (2010)").await;
+
+    let app = test_app(pool, config, true);
+    let response = app
+        .oneshot(get_with_cookie("/movies", &cookie))
+        .await
+        .unwrap();
+
+    let body = body_string(response).await;
+    assert!(!body.contains("<th>Marked</th>"));
+}
+
+#[tokio::test]
+async fn movies_shows_mark_counts_for_admins() {
+    let pool = test_pool().await;
+    let config = test_config(vec![]);
+    let (admin_id, _) = create_test_user(&pool, "admin", true).await;
+    let cookie = login_cookie(&pool, admin_id).await;
+    insert_movie(&pool, "Inception", "/movies/Inception (2010)").await;
+
+    let app = test_app(pool, config, true);
+    let response = app
+        .oneshot(get_with_cookie("/movies", &cookie))
+        .await
+        .unwrap();
+
+    let body = body_string(response).await;
+    assert!(body.contains("<th>Marked</th>"));
+}

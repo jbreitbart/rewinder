@@ -87,6 +87,7 @@ async fn mark_movie(
             mark_count,
             total_users,
         },
+        is_admin: auth.is_admin,
     })
 }
 
@@ -111,5 +112,6 @@ async fn unmark_movie(
             mark_count,
             total_users,
         },
+        is_admin: auth.is_admin,
     })
 }

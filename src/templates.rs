@@ -83,6 +83,7 @@ impl IntoResponse for TvTemplate {
 #[template(path = "partials/media_row.html")]
 pub struct MediaRowPartial {
     pub item: MediaRow,
+    pub is_admin: bool,
 }
 
 impl IntoResponse for MediaRowPartial {
