@@ -205,5 +205,70 @@ async fn movies_shows_mark_counts_for_admins() {
         .unwrap();
 
     let body = body_string(response).await;
-    assert!(body.contains("<th>Marked</th>"));
+    assert!(body.contains(">Marked</a></th>"));
+}
+
+#[tokio::test]
+async fn movies_sort_by_year_desc() {
+    let pool = test_pool().await;
+    let config = test_config(vec![]);
+    let (user_id, _) = create_test_user(&pool, "alice", false).await;
+    let cookie = login_cookie(&pool, user_id).await;
+
+    rewinder::models::media::upsert(
+        &pool,
+        "movie",
+        "Old Movie",
+        Some(1990),
+        None,
+        "/movies/Old Movie (1990)",
+        1_000_000,
+    )
+    .await
+    .unwrap();
+    rewinder::models::media::upsert(
+        &pool,
+        "movie",
+        "New Movie",
+        Some(2022),
+        None,
+        "/movies/New Movie (2022)",
+        1_000_000,
+    )
+    .await
+    .unwrap();
+
+    let app = test_app(pool, config, true);
+    let response = app
+        .oneshot(get_with_cookie("/movies?sort=year&dir=desc", &cookie))
+        .await
+        .unwrap();
+
+    let body = body_string(response).await;
+    let new_idx = body.find("New Movie").unwrap();
+    let old_idx = body.find("Old Movie").unwrap();
+    assert!(new_idx < old_idx, "expected New Movie before Old Movie");
+}
+
+#[tokio::test]
+async fn movies_sort_by_added_desc() {
+    let pool = test_pool().await;
+    let config = test_config(vec![]);
+    let (user_id, _) = create_test_user(&pool, "alice", false).await;
+    let cookie = login_cookie(&pool, user_id).await;
+
+    insert_movie(&pool, "First Movie", "/movies/First Movie (2000)").await;
+    tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
+    insert_movie(&pool, "Second Movie", "/movies/Second Movie (2001)").await;
+
+    let app = test_app(pool, config, true);
+    let response = app
+        .oneshot(get_with_cookie("/movies?sort=added&dir=desc", &cookie))
+        .await
+        .unwrap();
+
+    let body = body_string(response).await;
+    let second_idx = body.find("Second Movie").unwrap();
+    let first_idx = body.find("First Movie").unwrap();
+    assert!(second_idx < first_idx, "expected most recently added first");
 }

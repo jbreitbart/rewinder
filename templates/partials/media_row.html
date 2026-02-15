@@ -5,6 +5,7 @@
     {% else %}
     <td>Season {% match item.media.season %}{% when Some with (s) %}{{ s }}{% when None %}0{% endmatch %}</td>
     {% endif %}
+    <td>{{ item.media.first_seen }}</td>
     <td>{{ crate::templates::format_size(item.media.size_bytes) }}</td>
     {% if is_admin %}
     <td>{{ item.mark_count }} / {{ item.total_users }}</td>

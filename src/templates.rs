@@ -56,6 +56,8 @@ pub struct MoviesTemplate {
     pub is_admin: bool,
     pub items: Vec<MediaRow>,
     pub show_marked: bool,
+    pub sort_by: String,
+    pub sort_dir: String,
 }
 
 impl IntoResponse for MoviesTemplate {
@@ -71,6 +73,8 @@ pub struct TvTemplate {
     pub is_admin: bool,
     pub items: Vec<MediaRow>,
     pub show_marked: bool,
+    pub sort_by: String,
+    pub sort_dir: String,
 }
 
 impl IntoResponse for TvTemplate {

@@ -3,6 +3,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
 use serde::Deserialize;
+use std::cmp::Ordering;
 
 use crate::auth::middleware::AuthUser;
 use crate::error::AppError;
@@ -24,6 +25,67 @@ pub fn router() -> Router<AppState> {
 struct ListQuery {
     #[serde(default)]
     show_marked: Option<String>,
+    #[serde(default)]
+    sort: Option<String>,
+    #[serde(default)]
+    dir: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SortDir {
+    Asc,
+    Desc,
+}
+
+impl SortDir {
+    fn parse(value: Option<&str>) -> Self {
+        match value {
+            Some("desc") => SortDir::Desc,
+            _ => SortDir::Asc,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            SortDir::Asc => "asc",
+            SortDir::Desc => "desc",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MovieSortBy {
+    Name,
+    Year,
+    Marked,
+    Added,
+}
+
+impl MovieSortBy {
+    fn parse(value: Option<&str>) -> Self {
+        match value {
+            Some("year") => MovieSortBy::Year,
+            Some("marked") => MovieSortBy::Marked,
+            Some("added") => MovieSortBy::Added,
+            _ => MovieSortBy::Name,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            MovieSortBy::Name => "name",
+            MovieSortBy::Year => "year",
+            MovieSortBy::Marked => "marked",
+            MovieSortBy::Added => "added",
+        }
+    }
+}
+
+fn apply_sort_dir(ordering: Ordering, sort_dir: SortDir) -> Ordering {
+    match sort_dir {
+        SortDir::Asc => ordering,
+        SortDir::Desc => ordering.reverse(),
+    }
 }
 
 async fn list_movies(
@@ -32,6 +94,8 @@ async fn list_movies(
     Query(query): Query<ListQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     let show_marked = query.show_marked.as_deref() == Some("true");
+    let sort_by = MovieSortBy::parse(query.sort.as_deref());
+    let sort_dir = SortDir::parse(query.dir.as_deref());
     let all_media = media::list_by_type(&state.pool, "movie").await?;
     let user_marks = mark::user_marks(&state.pool, auth.id).await?;
     let total_users = user::count(&state.pool).await?;
@@ -51,11 +115,38 @@ async fn list_movies(
         });
     }
 
+    items.sort_by(|a, b| {
+        let ordering = match sort_by {
+            MovieSortBy::Name => a
+                .media
+                .title
+                .cmp(&b.media.title)
+                .then_with(|| a.media.id.cmp(&b.media.id)),
+            MovieSortBy::Year => a
+                .media
+                .year
+                .cmp(&b.media.year)
+                .then_with(|| a.media.title.cmp(&b.media.title)),
+            MovieSortBy::Marked => a
+                .marked
+                .cmp(&b.marked)
+                .then_with(|| a.media.title.cmp(&b.media.title)),
+            MovieSortBy::Added => a
+                .media
+                .first_seen
+                .cmp(&b.media.first_seen)
+                .then_with(|| a.media.title.cmp(&b.media.title)),
+        };
+        apply_sort_dir(ordering, sort_dir)
+    });
+
     Ok(MoviesTemplate {
         username: auth.username,
         is_admin: auth.is_admin,
         items,
         show_marked,
+        sort_by: sort_by.as_str().to_string(),
+        sort_dir: sort_dir.as_str().to_string(),
     })
 }
 

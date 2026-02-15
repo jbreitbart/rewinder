@@ -3,6 +3,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
 use serde::Deserialize;
+use std::cmp::Ordering;
 
 use crate::auth::middleware::AuthUser;
 use crate::error::AppError;
@@ -20,6 +21,67 @@ pub fn router() -> Router<AppState> {
 struct ListQuery {
     #[serde(default)]
     show_marked: Option<String>,
+    #[serde(default)]
+    sort: Option<String>,
+    #[serde(default)]
+    dir: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum SortDir {
+    Asc,
+    Desc,
+}
+
+impl SortDir {
+    fn parse(value: Option<&str>) -> Self {
+        match value {
+            Some("desc") => SortDir::Desc,
+            _ => SortDir::Asc,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            SortDir::Asc => "asc",
+            SortDir::Desc => "desc",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum TvSortBy {
+    Name,
+    Season,
+    Marked,
+    Added,
+}
+
+impl TvSortBy {
+    fn parse(value: Option<&str>) -> Self {
+        match value {
+            Some("season") => TvSortBy::Season,
+            Some("marked") => TvSortBy::Marked,
+            Some("added") => TvSortBy::Added,
+            _ => TvSortBy::Name,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            TvSortBy::Name => "name",
+            TvSortBy::Season => "season",
+            TvSortBy::Marked => "marked",
+            TvSortBy::Added => "added",
+        }
+    }
+}
+
+fn apply_sort_dir(ordering: Ordering, sort_dir: SortDir) -> Ordering {
+    match sort_dir {
+        SortDir::Asc => ordering,
+        SortDir::Desc => ordering.reverse(),
+    }
 }
 
 async fn list_tv(
@@ -28,6 +90,8 @@ async fn list_tv(
     Query(query): Query<ListQuery>,
 ) -> Result<impl IntoResponse, AppError> {
     let show_marked = query.show_marked.as_deref() == Some("true");
+    let sort_by = TvSortBy::parse(query.sort.as_deref());
+    let sort_dir = SortDir::parse(query.dir.as_deref());
     let all_media = media::list_by_type(&state.pool, "tv_season").await?;
     let user_marks = mark::user_marks(&state.pool, auth.id).await?;
     let total_users = user::count(&state.pool).await?;
@@ -47,11 +111,38 @@ async fn list_tv(
         });
     }
 
+    items.sort_by(|a, b| {
+        let ordering = match sort_by {
+            TvSortBy::Name => a
+                .media
+                .title
+                .cmp(&b.media.title)
+                .then_with(|| a.media.season.cmp(&b.media.season)),
+            TvSortBy::Season => a
+                .media
+                .season
+                .cmp(&b.media.season)
+                .then_with(|| a.media.title.cmp(&b.media.title)),
+            TvSortBy::Marked => a
+                .marked
+                .cmp(&b.marked)
+                .then_with(|| a.media.title.cmp(&b.media.title)),
+            TvSortBy::Added => a
+                .media
+                .first_seen
+                .cmp(&b.media.first_seen)
+                .then_with(|| a.media.title.cmp(&b.media.title)),
+        };
+        apply_sort_dir(ordering, sort_dir)
+    });
+
     Ok(TvTemplate {
         username: auth.username,
         is_admin: auth.is_admin,
         items,
         show_marked,
+        sort_by: sort_by.as_str().to_string(),
+        sort_dir: sort_dir.as_str().to_string(),
     })
 }
 

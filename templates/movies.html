@@ -12,7 +12,9 @@
                    hx-target="main"
                    hx-select="main"
                    hx-swap="outerHTML"
-                   hx-vals='js:{"show_marked": event.target.checked ? "true" : "false"}'
+                   data-sort-by="{{ sort_by }}"
+                   data-sort-dir="{{ sort_dir }}"
+                   hx-vals='js:{"show_marked": event.target.checked ? "true" : "false", "sort": event.target.dataset.sortBy, "dir": event.target.dataset.sortDir}'
                    hx-push-url="true">
             Show marked
         </label>
@@ -20,11 +22,12 @@
     <table class="media-table">
         <thead>
             <tr>
-                <th>Title</th>
-                <th>Year</th>
+                <th><a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=name&dir={% if sort_by == "name" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Title</a></th>
+                <th><a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=year&dir={% if sort_by == "year" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Year</a></th>
+                <th><a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=added&dir={% if sort_by == "added" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Date Added</a></th>
                 <th>Size</th>
                 {% if is_admin %}
-                <th>Marked</th>
+                <th><a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=marked&dir={% if sort_by == "marked" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Marked</a></th>
                 {% endif %}
                 <th>Action</th>
             </tr>
@@ -34,7 +37,7 @@
             {% include "partials/media_row.html" %}
             {% endfor %}
             {% if items.len() == 0 %}
-            <tr><td colspan="{% if is_admin %}5{% else %}4{% endif %}" class="empty">No movies found</td></tr>
+            <tr><td colspan="{% if is_admin %}6{% else %}5{% endif %}" class="empty">No movies found</td></tr>
             {% endif %}
         </tbody>
     </table>
