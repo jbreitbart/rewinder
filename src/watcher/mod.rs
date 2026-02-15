@@ -49,7 +49,9 @@ pub async fn start(
                                 let parent_buf = parent.to_path_buf();
                                 if media_dirs.contains(&parent_buf) {
                                     tracing::info!("New directory detected: {}", path.display());
-                                    if let Err(e) = scanner::scan_directory(&pool, parent).await {
+                                    if let Err(e) =
+                                        scanner::scan_directory(&pool, parent, None).await
+                                    {
                                         tracing::error!("Error scanning after create: {e}");
                                     }
                                 }

@@ -90,6 +90,7 @@ pub struct TvSeriesGroup {
     pub seasons: Vec<MediaRow>,
     pub marked_count: i64,
     pub total_count: i64,
+    pub poster_url: Option<String>,
 }
 
 #[derive(Template)]
@@ -100,6 +101,19 @@ pub struct MediaRowPartial {
 }
 
 impl IntoResponse for MediaRowPartial {
+    fn into_response(self) -> Response {
+        render_template(&self)
+    }
+}
+
+#[derive(Template)]
+#[template(path = "partials/media_card.html")]
+pub struct MediaCardPartial {
+    pub item: MediaRow,
+    pub is_admin: bool,
+}
+
+impl IntoResponse for MediaCardPartial {
     fn into_response(self) -> Response {
         render_template(&self)
     }
@@ -150,6 +164,10 @@ impl IntoResponse for AdminTrashTemplate {
     fn into_response(self) -> Response {
         render_template(&self)
     }
+}
+
+pub fn poster_image_url(poster_path: &Option<String>) -> Option<String> {
+    poster_path.as_ref().map(|p| crate::tmdb::poster_url(p))
 }
 
 pub fn format_size(bytes: &i64) -> String {

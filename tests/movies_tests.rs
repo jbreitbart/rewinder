@@ -187,7 +187,7 @@ async fn movies_hides_mark_counts_for_non_admins() {
         .unwrap();
 
     let body = body_string(response).await;
-    assert!(!body.contains("<th>Marked</th>"));
+    assert!(!body.contains("media-card__marks"));
 }
 
 #[tokio::test]
@@ -205,7 +205,7 @@ async fn movies_shows_mark_counts_for_admins() {
         .unwrap();
 
     let body = body_string(response).await;
-    assert!(body.contains(">Marked</a></th>"));
+    assert!(body.contains("media-card__marks"));
 }
 
 #[tokio::test]
@@ -282,4 +282,32 @@ async fn movies_sort_by_added_desc() {
     let second_idx = body.find("Second Movie").unwrap();
     let first_idx = body.find("First Movie").unwrap();
     assert!(second_idx < first_idx, "expected most recently added first");
+}
+
+#[tokio::test]
+async fn set_and_read_poster_path() {
+    let pool = test_pool().await;
+    let movie_id = insert_movie(&pool, "Inception", "/movies/Inception (2010)").await;
+
+    // Initially needs poster
+    assert!(rewinder::models::media::needs_poster(&pool, movie_id)
+        .await
+        .unwrap());
+
+    // Set poster
+    rewinder::models::media::set_poster(&pool, movie_id, "/abc123.jpg")
+        .await
+        .unwrap();
+
+    // No longer needs poster
+    assert!(!rewinder::models::media::needs_poster(&pool, movie_id)
+        .await
+        .unwrap());
+
+    // Verify stored value
+    let media = rewinder::models::media::get_by_id(&pool, movie_id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(media.poster_path.as_deref(), Some("/abc123.jpg"));
 }

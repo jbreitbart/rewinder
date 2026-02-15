@@ -143,7 +143,7 @@ async fn trigger_scan(
     let media_dirs = state.config.media_dirs.clone();
 
     tokio::spawn(async move {
-        if let Err(e) = crate::scanner::full_scan(&pool, &media_dirs).await {
+        if let Err(e) = crate::scanner::full_scan(&pool, &media_dirs, None).await {
             tracing::error!("Manual scan failed: {e}");
         }
     });

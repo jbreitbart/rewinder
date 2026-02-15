@@ -46,6 +46,7 @@ pub fn test_config(media_dirs: Vec<PathBuf>) -> AppConfig {
         grace_period_days: 7,
         cleanup_interval_hours: 1,
         initial_admin_user: None,
+        tmdb_api_key: None,
     }
 }
 

@@ -19,27 +19,22 @@
             Show marked
         </label>
     </div>
-    <table class="media-table">
-        <thead>
-            <tr>
-                <th><a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=name&dir={% if sort_by == "name" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Title</a></th>
-                <th><a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=year&dir={% if sort_by == "year" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Year</a></th>
-                <th><a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=added&dir={% if sort_by == "added" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Date Added</a></th>
-                <th>Size</th>
-                {% if is_admin %}
-                <th><a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=marked&dir={% if sort_by == "marked" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Marked</a></th>
-                {% endif %}
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in items %}
-            {% include "partials/media_row.html" %}
-            {% endfor %}
-            {% if items.len() == 0 %}
-            <tr><td colspan="{% if is_admin %}6{% else %}5{% endif %}" class="empty">No movies found</td></tr>
-            {% endif %}
-        </tbody>
-    </table>
+    <div class="sort-controls">
+        Sort:
+        <a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=name&dir={% if sort_by == "name" && sort_dir == "asc" %}desc{% else %}asc{% endif %}" class="{% if sort_by == "name" %}active{% endif %}">Title</a>
+        <a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=year&dir={% if sort_by == "year" && sort_dir == "asc" %}desc{% else %}asc{% endif %}" class="{% if sort_by == "year" %}active{% endif %}">Year</a>
+        <a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=added&dir={% if sort_by == "added" && sort_dir == "asc" %}desc{% else %}asc{% endif %}" class="{% if sort_by == "added" %}active{% endif %}">Added</a>
+        {% if is_admin %}
+        <a href="/movies?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=marked&dir={% if sort_by == "marked" && sort_dir == "asc" %}desc{% else %}asc{% endif %}" class="{% if sort_by == "marked" %}active{% endif %}">Marked</a>
+        {% endif %}
+    </div>
+    <div class="media-grid">
+        {% for item in items %}
+        {% include "partials/media_card.html" %}
+        {% endfor %}
+    </div>
+    {% if items.len() == 0 %}
+    <p class="empty">No movies found</p>
+    {% endif %}
 </main>
 {% endblock %}

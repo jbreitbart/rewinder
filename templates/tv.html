@@ -19,54 +19,52 @@
             Show marked
         </label>
     </div>
-    <table class="media-table">
-        <thead>
-            <tr>
-                <th><a href="/tv?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=name&dir={% if sort_by == "name" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Series</a></th>
-                <th><a href="/tv?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=season&dir={% if sort_by == "season" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Season</a></th>
-                <th><a href="/tv?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=added&dir={% if sort_by == "added" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Date Added</a></th>
-                <th>Size</th>
-                {% if is_admin %}
-                <th><a href="/tv?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=marked&dir={% if sort_by == "marked" && sort_dir == "asc" %}desc{% else %}asc{% endif %}">Marked</a></th>
-                {% endif %}
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for group in series_groups %}
-            <tr class="series-group-row">
-                <td colspan="{% if is_admin %}6{% else %}5{% endif %}">
-                    <div class="series-group-header">
-                        <strong>{{ group.title }}</strong>
-                        <div class="series-group-actions">
-                            <button class="btn btn-sm btn-primary series-group-mark-all"
-                                    hx-post="/tv/series/{{ group.title|urlencode_strict }}/mark-all?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort={{ sort_by }}&dir={{ sort_dir }}"
-                                    hx-target="main"
-                                    hx-select="main"
-                                    hx-swap="outerHTML"
-                                    hx-push-url="true">
-                                Mark All Seasons
-                            </button>
-                            <button class="btn btn-sm btn-success series-group-mark-all"
-                                    hx-post="/tv/series/{{ group.title|urlencode_strict }}/persist-all?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort={{ sort_by }}&dir={{ sort_dir }}"
-                                    hx-target="main"
-                                    hx-select="main"
-                                    hx-swap="outerHTML"
-                                    hx-push-url="true">
-                                Persist All Seasons
-                            </button>
-                        </div>
-                    </div>
-                </td>
-            </tr>
+    <div class="sort-controls">
+        Sort:
+        <a href="/tv?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=name&dir={% if sort_by == "name" && sort_dir == "asc" %}desc{% else %}asc{% endif %}" class="{% if sort_by == "name" %}active{% endif %}">Series</a>
+        <a href="/tv?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=season&dir={% if sort_by == "season" && sort_dir == "asc" %}desc{% else %}asc{% endif %}" class="{% if sort_by == "season" %}active{% endif %}">Season</a>
+        <a href="/tv?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=added&dir={% if sort_by == "added" && sort_dir == "asc" %}desc{% else %}asc{% endif %}" class="{% if sort_by == "added" %}active{% endif %}">Added</a>
+        {% if is_admin %}
+        <a href="/tv?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort=marked&dir={% if sort_by == "marked" && sort_dir == "asc" %}desc{% else %}asc{% endif %}" class="{% if sort_by == "marked" %}active{% endif %}">Marked</a>
+        {% endif %}
+    </div>
+    {% for group in series_groups %}
+    <div class="series-group">
+        <div class="series-group-header">
+            {% match group.poster_url %}
+            {% when Some with (url) %}
+            <img class="series-group__poster" src="{{ url }}" alt="{{ group.title }}" loading="lazy">
+            {% when None %}
+            {% endmatch %}
+            <strong>{{ group.title }}</strong>
+            <div class="series-group-actions">
+                <button class="btn btn-sm btn-primary series-group-mark-all"
+                        hx-post="/tv/series/{{ group.title|urlencode_strict }}/mark-all?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort={{ sort_by }}&dir={{ sort_dir }}"
+                        hx-target="main"
+                        hx-select="main"
+                        hx-swap="outerHTML"
+                        hx-push-url="true">
+                    Mark All Seasons
+                </button>
+                <button class="btn btn-sm btn-success series-group-mark-all"
+                        hx-post="/tv/series/{{ group.title|urlencode_strict }}/persist-all?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort={{ sort_by }}&dir={{ sort_dir }}"
+                        hx-target="main"
+                        hx-select="main"
+                        hx-swap="outerHTML"
+                        hx-push-url="true">
+                    Persist All Seasons
+                </button>
+            </div>
+        </div>
+        <div class="media-grid">
             {% for item in group.seasons %}
-            {% include "partials/media_row.html" %}
+            {% include "partials/media_card.html" %}
             {% endfor %}
-            {% endfor %}
-            {% if series_groups.len() == 0 %}
-            <tr><td colspan="{% if is_admin %}6{% else %}5{% endif %}" class="empty">No TV shows found</td></tr>
-            {% endif %}
-        </tbody>
-    </table>
+        </div>
+    </div>
+    {% endfor %}
+    {% if series_groups.len() == 0 %}
+    <p class="empty">No TV shows found</p>
+    {% endif %}
 </main>
 {% endblock %}

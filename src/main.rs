@@ -6,6 +6,7 @@ use tower_http::services::ServeDir;
 
 use rewinder::config::AppConfig;
 use rewinder::routes::AppState;
+use rewinder::tmdb::TmdbClient;
 use rewinder::{auth, db, models, scanner, trash, watcher};
 
 #[derive(Parser)]
@@ -174,8 +175,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         auth::seed_admin(&pool, admin_user).await?;
     }
 
+    // Construct TMDB client if API key is configured
+    let tmdb = config
+        .tmdb_api_key
+        .as_ref()
+        .map(|key| TmdbClient::new(key.clone()));
+    if tmdb.is_some() {
+        tracing::info!("TMDB API key configured — poster fetching enabled");
+    }
+
     // Run initial scan
-    scanner::full_scan(&pool, &config.media_dirs).await?;
+    scanner::full_scan(&pool, &config.media_dirs, tmdb.as_ref()).await?;
 
     // Start filesystem watcher
     watcher::start(pool.clone(), config.media_dirs.clone()).await?;
@@ -187,6 +197,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let cleanup_config = config.clone();
         let media_dirs = config.media_dirs.clone();
         let cleanup_interval_hours = config.cleanup_interval_hours;
+        let cleanup_tmdb = tmdb.clone();
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(std::time::Duration::from_secs(
                 cleanup_interval_hours * 3600,
@@ -194,7 +205,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             loop {
                 interval.tick().await;
                 // Re-scan to detect externally removed directories
-                if let Err(e) = scanner::full_scan(&cleanup_pool, &media_dirs).await {
+                if let Err(e) =
+                    scanner::full_scan(&cleanup_pool, &media_dirs, cleanup_tmdb.as_ref()).await
+                {
                     tracing::error!("Periodic scan error: {e}");
                 }
                 // Clean up marks for items that are gone
@@ -251,6 +264,7 @@ mod tests {
             grace_period_days: 7,
             cleanup_interval_hours: 1,
             initial_admin_user: None,
+            tmdb_api_key: None,
         }
     }
 

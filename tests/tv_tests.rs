@@ -77,7 +77,7 @@ async fn tv_hides_mark_counts_for_non_admins() {
     let response = app.oneshot(get_with_cookie("/tv", &cookie)).await.unwrap();
 
     let body = body_string(response).await;
-    assert!(!body.contains("<th>Marked</th>"));
+    assert!(!body.contains("media-card__marks"));
 }
 
 #[tokio::test]
@@ -92,7 +92,7 @@ async fn tv_shows_mark_counts_for_admins() {
     let response = app.oneshot(get_with_cookie("/tv", &cookie)).await.unwrap();
 
     let body = body_string(response).await;
-    assert!(body.contains(">Marked</a></th>"));
+    assert!(body.contains("media-card__marks"));
 }
 
 #[tokio::test]
@@ -134,7 +134,7 @@ async fn tv_groups_series_visually() {
     let response = app.oneshot(get_with_cookie("/tv", &cookie)).await.unwrap();
 
     let body = body_string(response).await;
-    assert!(body.contains("series-group-row"));
+    assert!(body.contains("series-group"));
     assert!(body.contains("Mark All Seasons"));
 }
 

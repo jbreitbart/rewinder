@@ -14,6 +14,7 @@ pub struct Media {
     pub trashed_at: Option<String>,
     pub first_seen: String,
     pub last_seen: String,
+    pub poster_path: Option<String>,
 }
 
 pub async fn list_by_type(pool: &SqlitePool, media_type: &str) -> Result<Vec<Media>, sqlx::Error> {
@@ -219,6 +220,23 @@ pub async fn count_by_status(pool: &SqlitePool, status: &str) -> Result<i64, sql
         .fetch_one(pool)
         .await?;
     Ok(row.0)
+}
+
+pub async fn needs_poster(pool: &SqlitePool, id: i64) -> Result<bool, sqlx::Error> {
+    let row: (bool,) = sqlx::query_as("SELECT poster_path IS NULL FROM media WHERE id = ?")
+        .bind(id)
+        .fetch_one(pool)
+        .await?;
+    Ok(row.0)
+}
+
+pub async fn set_poster(pool: &SqlitePool, id: i64, poster_path: &str) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE media SET poster_path = ? WHERE id = ?")
+        .bind(poster_path)
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
 }
 
 pub async fn cleanup_gone_marks(pool: &SqlitePool) -> Result<u64, sqlx::Error> {

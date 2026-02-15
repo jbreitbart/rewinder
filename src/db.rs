@@ -2,11 +2,15 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use std::str::FromStr;
 
-const MIGRATIONS: [(&str, &str); 2] = [
+const MIGRATIONS: [(&str, &str); 3] = [
     ("001_initial", include_str!("../migrations/001_initial.sql")),
     (
         "002_add_permanent_media",
         include_str!("../migrations/002_add_permanent_media.sql"),
+    ),
+    (
+        "003_poster_path",
+        include_str!("../migrations/003_poster_path.sql"),
     ),
 ];
 

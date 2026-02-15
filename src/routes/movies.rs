@@ -10,7 +10,7 @@ use crate::error::AppError;
 use crate::models::{mark, media, persistent, user};
 use crate::routes::sort::{apply_sort_dir, SortDir};
 use crate::routes::AppState;
-use crate::templates::{MediaRow, MediaRowPartial, MoviesTemplate};
+use crate::templates::{MediaCardPartial, MediaRow, MoviesTemplate};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -158,10 +158,16 @@ async fn mark_movie(
 
     // Re-fetch to get updated state
     let media_item = media::get_by_id(&state.pool, id).await?.unwrap_or(m);
+
+    // If the item was trashed (all users marked), remove it from the DOM
+    if media_item.status != "active" {
+        return Ok(axum::response::Html(String::new()).into_response());
+    }
+
     let mark_count = mark::mark_count(&state.pool, id).await?;
     let total_users = user::count(&state.pool).await?;
 
-    Ok(MediaRowPartial {
+    Ok(MediaCardPartial {
         item: MediaRow {
             media: media_item,
             marked: true,
@@ -171,7 +177,8 @@ async fn mark_movie(
             persisted_by_me: false,
         },
         is_admin: auth.is_admin,
-    })
+    }
+    .into_response())
 }
 
 async fn unmark_movie(
@@ -191,7 +198,7 @@ async fn unmark_movie(
     let mark_count = mark::mark_count(&state.pool, id).await?;
     let total_users = user::count(&state.pool).await?;
 
-    Ok(MediaRowPartial {
+    Ok(MediaCardPartial {
         item: MediaRow {
             media: m,
             marked: false,
@@ -224,7 +231,7 @@ async fn persist_movie(
     let mark_count = mark::mark_count(&state.pool, id).await?;
     let total_users = user::count(&state.pool).await?;
 
-    Ok(MediaRowPartial {
+    Ok(MediaCardPartial {
         item: MediaRow {
             media: media_item,
             marked: false,
@@ -269,7 +276,7 @@ async fn unpersist_movie(
     let mark_count = mark::mark_count(&state.pool, id).await?;
     let total_users = user::count(&state.pool).await?;
 
-    Ok(MediaRowPartial {
+    Ok(MediaCardPartial {
         item: MediaRow {
             media: media_item,
             marked: false,

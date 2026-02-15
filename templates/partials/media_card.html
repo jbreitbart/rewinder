@@ -1,0 +1,63 @@
+<div class="media-card" id="media-{{ item.media.id }}">
+    {% match crate::templates::poster_image_url(item.media.poster_path) %}
+    {% when Some with (url) %}
+    <img class="media-card__poster" src="{{ url }}" alt="{{ item.media.title }}" loading="lazy">
+    {% when None %}
+    <div class="media-card__placeholder">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M2 22l5-5 3 3 4-4 8 8"/></svg>
+    </div>
+    {% endmatch %}
+    <div class="media-card__info">
+        <div class="media-card__title">{{ item.media.title }}</div>
+        <div class="media-card__meta">
+            {% if item.media.media_type == "movie" %}
+            {% match item.media.year %}{% when Some with (y) %}{{ y }}{% when None %}{% endmatch %}
+            {% else %}
+            Season {% match item.media.season %}{% when Some with (s) %}{{ s }}{% when None %}0{% endmatch %}
+            {% endif %}
+            — {{ crate::templates::format_size(item.media.size_bytes) }}
+        </div>
+        {% if item.persisted && item.persisted_by_me %}
+        <span class="pill">Persisted by you</span>
+        {% endif %}
+        {% if is_admin %}
+        <div class="media-card__marks">{{ item.mark_count }} / {{ item.total_users }}</div>
+        {% endif %}
+        <div class="media-card__actions">
+            {% if item.persisted && item.persisted_by_me %}
+            <button class="btn btn-sm btn-outline"
+                    hx-delete="/{% if item.media.media_type == "movie" %}movies{% else %}tv{% endif %}/{{ item.media.id }}/persist"
+                    hx-target="#media-{{ item.media.id }}"
+                    hx-swap="outerHTML">
+                Unpersist
+            </button>
+            {% else if item.marked %}
+            <button class="btn btn-sm btn-outline"
+                    hx-delete="/{% if item.media.media_type == "movie" %}movies{% else %}tv{% endif %}/{{ item.media.id }}/mark"
+                    hx-target="#media-{{ item.media.id }}"
+                    hx-swap="outerHTML">
+                Unmark
+            </button>
+            <button class="btn btn-sm btn-success"
+                    hx-post="/{% if item.media.media_type == "movie" %}movies{% else %}tv{% endif %}/{{ item.media.id }}/persist"
+                    hx-target="#media-{{ item.media.id }}"
+                    hx-swap="outerHTML">
+                Persist
+            </button>
+            {% else %}
+            <button class="btn btn-sm btn-primary"
+                    hx-post="/{% if item.media.media_type == "movie" %}movies{% else %}tv{% endif %}/{{ item.media.id }}/mark"
+                    hx-target="#media-{{ item.media.id }}"
+                    hx-swap="outerHTML">
+                Mark Done
+            </button>
+            <button class="btn btn-sm btn-success"
+                    hx-post="/{% if item.media.media_type == "movie" %}movies{% else %}tv{% endif %}/{{ item.media.id }}/persist"
+                    hx-target="#media-{{ item.media.id }}"
+                    hx-swap="outerHTML">
+                Persist
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -10,7 +10,7 @@ use crate::error::AppError;
 use crate::models::{mark, media, persistent, user};
 use crate::routes::sort::{apply_sort_dir, SortDir};
 use crate::routes::AppState;
-use crate::templates::{MediaRow, MediaRowPartial, TvSeriesGroup, TvTemplate};
+use crate::templates::{poster_image_url, MediaCardPartial, MediaRow, TvSeriesGroup, TvTemplate};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -87,11 +87,15 @@ fn build_tv_groups(
         });
         let marked_count = seasons.iter().filter(|s| s.marked).count() as i64;
         let total_count = seasons.len() as i64;
+        let poster_url = seasons
+            .first()
+            .and_then(|s| poster_image_url(&s.media.poster_path));
         groups.push(TvSeriesGroup {
             title,
             seasons,
             marked_count,
             total_count,
+            poster_url,
         });
     }
 
@@ -217,10 +221,16 @@ async fn mark_tv(
         .map_err(|e| AppError::Internal(format!("trash operation failed: {e}")))?;
 
     let media_item = media::get_by_id(&state.pool, id).await?.unwrap_or(m);
+
+    // If the item was trashed (all users marked), remove it from the DOM
+    if media_item.status != "active" {
+        return Ok(axum::response::Html(String::new()).into_response());
+    }
+
     let mark_count = mark::mark_count(&state.pool, id).await?;
     let total_users = user::count(&state.pool).await?;
 
-    Ok(MediaRowPartial {
+    Ok(MediaCardPartial {
         item: MediaRow {
             media: media_item,
             marked: true,
@@ -230,7 +240,8 @@ async fn mark_tv(
             persisted_by_me: false,
         },
         is_admin: auth.is_admin,
-    })
+    }
+    .into_response())
 }
 
 async fn unmark_tv(
@@ -250,7 +261,7 @@ async fn unmark_tv(
     let mark_count = mark::mark_count(&state.pool, id).await?;
     let total_users = user::count(&state.pool).await?;
 
-    Ok(MediaRowPartial {
+    Ok(MediaCardPartial {
         item: MediaRow {
             media: m,
             marked: false,
@@ -311,7 +322,7 @@ async fn persist_tv(
     let mark_count = mark::mark_count(&state.pool, id).await?;
     let total_users = user::count(&state.pool).await?;
 
-    Ok(MediaRowPartial {
+    Ok(MediaCardPartial {
         item: MediaRow {
             media: media_item,
             marked: false,
@@ -356,7 +367,7 @@ async fn unpersist_tv(
     let mark_count = mark::mark_count(&state.pool, id).await?;
     let total_users = user::count(&state.pool).await?;
 
-    Ok(MediaRowPartial {
+    Ok(MediaCardPartial {
         item: MediaRow {
             media: media_item,
             marked: false,

@@ -12,6 +12,7 @@ pub struct AppConfig {
     #[serde(default = "default_cleanup_interval")]
     pub cleanup_interval_hours: u64,
     pub initial_admin_user: Option<String>,
+    pub tmdb_api_key: Option<String>,
 }
 
 fn default_grace_period() -> u64 {

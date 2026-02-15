@@ -1,5 +1,7 @@
 use crate::models::media;
+use crate::tmdb::TmdbClient;
 use sqlx::SqlitePool;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 /// Parse a movie directory name like "Inception (2010)" → ("Inception", Some(2010))
@@ -66,8 +68,11 @@ fn dir_size(path: &Path) -> i64 {
 pub async fn scan_directory(
     pool: &SqlitePool,
     media_dir: &Path,
+    tmdb: Option<&TmdbClient>,
 ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
     let mut seen_paths = Vec::new();
+    // Track TV series titles we've already fetched posters for (share poster across seasons)
+    let mut tv_poster_fetched: HashSet<String> = HashSet::new();
 
     let entries = std::fs::read_dir(media_dir)?;
     for entry in entries.flatten() {
@@ -81,10 +86,31 @@ pub async fn scan_directory(
         // Check if this is a TV show (has Season subdirs)
         let seasons = find_seasons(&dir_path);
         if !seasons.is_empty() {
+            // Fetch poster once per series title
+            let series_poster = if let Some(client) = tmdb {
+                if !tv_poster_fetched.contains(&dir_name) {
+                    tv_poster_fetched.insert(dir_name.clone());
+                    match client.search_tv_poster(&dir_name).await {
+                        Some(p) => {
+                            tracing::info!("Fetched TMDB poster for TV: {dir_name}");
+                            Some(p)
+                        }
+                        None => {
+                            tracing::info!("No TMDB poster found for TV: {dir_name}");
+                            None
+                        }
+                    }
+                } else {
+                    None // Already fetched for this series in this scan
+                }
+            } else {
+                None
+            };
+
             for (season_num, season_path) in &seasons {
                 let path_str = season_path.to_string_lossy().to_string();
                 let size = dir_size(season_path);
-                media::upsert(
+                let id = media::upsert(
                     pool,
                     "tv_season",
                     &dir_name,
@@ -95,14 +121,34 @@ pub async fn scan_directory(
                 )
                 .await?;
                 seen_paths.push(path_str);
+
+                if let Some(ref poster) = series_poster {
+                    if media::needs_poster(pool, id).await.unwrap_or(false) {
+                        let _ = media::set_poster(pool, id, poster).await;
+                    }
+                }
             }
         } else {
             // Treat as movie
             let (title, year) = parse_movie_dir(&dir_name);
             let path_str = dir_path.to_string_lossy().to_string();
             let size = dir_size(&dir_path);
-            media::upsert(pool, "movie", &title, year, None, &path_str, size).await?;
+            let id = media::upsert(pool, "movie", &title, year, None, &path_str, size).await?;
             seen_paths.push(path_str);
+
+            if let Some(client) = tmdb {
+                if media::needs_poster(pool, id).await.unwrap_or(false) {
+                    match client.search_movie_poster(&title, year).await {
+                        Some(poster) => {
+                            tracing::info!("Fetched TMDB poster for movie: {title}");
+                            let _ = media::set_poster(pool, id, &poster).await;
+                        }
+                        None => {
+                            tracing::info!("No TMDB poster found for movie: {title}");
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -112,12 +158,13 @@ pub async fn scan_directory(
 pub async fn full_scan(
     pool: &SqlitePool,
     media_dirs: &[PathBuf],
+    tmdb: Option<&TmdbClient>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut all_seen = Vec::new();
 
     for dir in media_dirs {
         tracing::info!("Scanning media directory: {}", dir.display());
-        match scan_directory(pool, dir).await {
+        match scan_directory(pool, dir, tmdb).await {
             Ok(paths) => all_seen.extend(paths),
             Err(e) => tracing::error!("Error scanning {}: {e}", dir.display()),
         }

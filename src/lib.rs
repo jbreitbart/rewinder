@@ -10,5 +10,6 @@ pub mod persistent;
 pub mod routes;
 pub mod scanner;
 pub mod templates;
+pub mod tmdb;
 pub mod trash;
 pub mod watcher;
