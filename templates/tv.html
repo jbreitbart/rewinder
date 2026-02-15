@@ -47,6 +47,14 @@
                                     hx-push-url="true">
                                 Mark All Seasons
                             </button>
+                            <button class="btn btn-sm btn-success series-group-mark-all"
+                                    hx-post="/tv/series/{{ group.title|urlencode_strict }}/persist-all?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort={{ sort_by }}&dir={{ sort_dir }}"
+                                    hx-target="main"
+                                    hx-select="main"
+                                    hx-swap="outerHTML"
+                                    hx-push-url="true">
+                                Persist All Seasons
+                            </button>
                         </div>
                     </div>
                 </td>

@@ -47,6 +47,8 @@ pub struct MediaRow {
     pub marked: bool,
     pub mark_count: i64,
     pub total_users: i64,
+    pub persisted: bool,
+    pub persisted_by_me: bool,
 }
 
 #[derive(Template)]

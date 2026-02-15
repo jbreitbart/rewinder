@@ -3,11 +3,11 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::Router;
 use serde::Deserialize;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::auth::middleware::AuthUser;
 use crate::error::AppError;
-use crate::models::{mark, media, user};
+use crate::models::{mark, media, persistent, user};
 use crate::routes::sort::{apply_sort_dir, SortDir};
 use crate::routes::AppState;
 use crate::templates::{MediaRow, MediaRowPartial, TvSeriesGroup, TvTemplate};
@@ -16,7 +16,9 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/tv", get(list_tv))
         .route("/tv/series/{series}/mark-all", post(mark_series))
+        .route("/tv/series/{series}/persist-all", post(persist_series))
         .route("/tv/{id}/mark", post(mark_tv).delete(unmark_tv))
+        .route("/tv/{id}/persist", post(persist_tv).delete(unpersist_tv))
 }
 
 #[derive(Deserialize, Clone)]
@@ -131,13 +133,22 @@ async fn list_tv(
     let show_marked = query.show_marked.as_deref() == Some("true");
     let sort_by = TvSortBy::parse(query.sort.as_deref());
     let sort_dir = SortDir::parse(query.dir.as_deref());
-    let all_media = media::list_by_type(&state.pool, "tv_season").await?;
+    let all_media = media::list_visible_for_user(&state.pool, "tv_season", auth.id).await?;
     let user_marks = mark::user_marks(&state.pool, auth.id).await?;
     let total_users = user::count(&state.pool).await?;
+    let media_ids: Vec<i64> = all_media.iter().map(|m| m.id).collect();
+    let owners = persistent::owner_for_media_ids(&state.pool, &media_ids).await?;
+    let owner_map: HashMap<i64, i64> = owners
+        .into_iter()
+        .map(|o| (o.media_id, o.user_id))
+        .collect();
 
     let mut items = Vec::new();
     for m in all_media {
-        let marked = user_marks.contains(&m.id);
+        let owner = owner_map.get(&m.id).copied();
+        let persisted = m.status == "permanent";
+        let persisted_by_me = owner == Some(auth.id);
+        let marked = !persisted && user_marks.contains(&m.id);
         if !show_marked && marked {
             continue;
         }
@@ -147,6 +158,8 @@ async fn list_tv(
             marked,
             mark_count,
             total_users,
+            persisted,
+            persisted_by_me,
         });
     }
 
@@ -171,7 +184,7 @@ async fn mark_series(
     let all_media = media::list_by_type(&state.pool, "tv_season").await?;
     let ids: Vec<i64> = all_media
         .into_iter()
-        .filter(|m| m.title == series)
+        .filter(|m| m.title == series && m.status == "active")
         .map(|m| m.id)
         .collect();
 
@@ -193,6 +206,9 @@ async fn mark_tv(
     let m = media::get_by_id(&state.pool, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    if m.status != "active" {
+        return Err(AppError::NotFound);
+    }
 
     mark::mark(&state.pool, auth.id, id).await?;
 
@@ -210,6 +226,8 @@ async fn mark_tv(
             marked: true,
             mark_count,
             total_users,
+            persisted: false,
+            persisted_by_me: false,
         },
         is_admin: auth.is_admin,
     })
@@ -223,6 +241,9 @@ async fn unmark_tv(
     let m = media::get_by_id(&state.pool, id)
         .await?
         .ok_or(AppError::NotFound)?;
+    if m.status != "active" {
+        return Err(AppError::NotFound);
+    }
 
     mark::unmark(&state.pool, auth.id, id).await?;
 
@@ -235,6 +256,114 @@ async fn unmark_tv(
             marked: false,
             mark_count,
             total_users,
+            persisted: false,
+            persisted_by_me: false,
+        },
+        is_admin: auth.is_admin,
+    })
+}
+
+async fn persist_series(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Path(series): Path<String>,
+    Query(query): Query<ListQuery>,
+) -> Result<impl IntoResponse, AppError> {
+    let all_media = media::list_by_type(&state.pool, "tv_season").await?;
+    let ids: Vec<i64> = all_media
+        .into_iter()
+        .filter(|m| m.title == series && m.status == "active")
+        .map(|m| m.id)
+        .collect();
+
+    for id in ids {
+        crate::persistent::move_to_permanent(
+            &state.pool,
+            id,
+            auth.id,
+            &state.config,
+            state.dry_run,
+        )
+        .await
+        .map_err(|e| AppError::Internal(format!("persist operation failed: {e}")))?;
+    }
+
+    list_tv(State(state), auth, Query(query)).await
+}
+
+async fn persist_tv(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Path(id): Path<i64>,
+) -> Result<impl IntoResponse, AppError> {
+    let m = media::get_by_id(&state.pool, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if m.status != "active" {
+        return Err(AppError::NotFound);
+    }
+
+    crate::persistent::move_to_permanent(&state.pool, id, auth.id, &state.config, state.dry_run)
+        .await
+        .map_err(|e| AppError::Internal(format!("persist operation failed: {e}")))?;
+
+    let media_item = media::get_by_id(&state.pool, id).await?.unwrap_or(m);
+    let mark_count = mark::mark_count(&state.pool, id).await?;
+    let total_users = user::count(&state.pool).await?;
+
+    Ok(MediaRowPartial {
+        item: MediaRow {
+            media: media_item,
+            marked: false,
+            mark_count,
+            total_users,
+            persisted: true,
+            persisted_by_me: true,
+        },
+        is_admin: auth.is_admin,
+    })
+}
+
+async fn unpersist_tv(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Path(id): Path<i64>,
+) -> Result<impl IntoResponse, AppError> {
+    let m = media::get_by_id(&state.pool, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if m.status != "permanent" {
+        return Err(AppError::NotFound);
+    }
+    let owner = persistent::get_owner(&state.pool, id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if owner.user_id != auth.id {
+        return Err(AppError::Forbidden);
+    }
+
+    crate::persistent::restore_from_permanent(
+        &state.pool,
+        id,
+        auth.id,
+        &state.config,
+        state.dry_run,
+    )
+    .await
+    .map_err(|e| AppError::Internal(format!("unpersist operation failed: {e}")))?;
+
+    let media_item = media::get_by_id(&state.pool, id).await?.unwrap_or(m);
+    let mark_count = mark::mark_count(&state.pool, id).await?;
+    let total_users = user::count(&state.pool).await?;
+
+    Ok(MediaRowPartial {
+        item: MediaRow {
+            media: media_item,
+            marked: false,
+            mark_count,
+            total_users,
+            persisted: false,
+            persisted_by_me: false,
         },
         is_admin: auth.is_admin,
     })

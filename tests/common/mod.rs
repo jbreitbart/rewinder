@@ -25,8 +25,7 @@ pub async fn test_pool() -> SqlitePool {
         .await
         .expect("failed to create test pool");
 
-    sqlx::raw_sql(include_str!("../../migrations/001_initial.sql"))
-        .execute(&pool)
+    rewinder::db::run_migrations(&pool)
         .await
         .expect("failed to run migrations");
 

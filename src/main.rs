@@ -75,6 +75,18 @@ fn validate_storage_access(
         ensure_dir_readable_and_writable(&trash_dir)?;
     }
 
+    for permanent_dir in config.all_permanent_dirs() {
+        if !permanent_dir.exists() {
+            std::fs::create_dir_all(&permanent_dir).map_err(|e| {
+                format!(
+                    "failed to create derived permanent directory {}: {e}",
+                    permanent_dir.display()
+                )
+            })?;
+        }
+        ensure_dir_readable_and_writable(&permanent_dir)?;
+    }
+
     #[cfg(unix)]
     {
         use std::os::unix::fs::MetadataExt;
@@ -98,6 +110,30 @@ fn validate_storage_access(
                     "media_dir {} and trash_dir {} are on different filesystems; refusing to start to avoid ownership changes during cross-device moves",
                     media_dir.display(),
                     trash_dir.display()
+                )
+                .into());
+            }
+
+            let permanent_dir =
+                AppConfig::permanent_dir_for_media_dir(media_dir).ok_or_else(|| {
+                    format!(
+                        "failed to derive permanent directory for media_dir {}",
+                        media_dir.display()
+                    )
+                })?;
+            let permanent_dev = std::fs::metadata(&permanent_dir)
+                .map_err(|e| {
+                    format!(
+                        "failed to stat permanent_dir {}: {e}",
+                        permanent_dir.display()
+                    )
+                })?
+                .dev();
+            if media_dev != permanent_dev {
+                return Err(format!(
+                    "media_dir {} and permanent_dir {} are on different filesystems; refusing to start to avoid ownership changes during cross-device moves",
+                    media_dir.display(),
+                    permanent_dir.display()
                 )
                 .into());
             }

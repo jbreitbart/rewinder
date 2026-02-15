@@ -5,6 +5,7 @@ use axum::response::{IntoResponse, Response};
 pub enum AppError {
     Database(sqlx::Error),
     NotFound,
+    Forbidden,
     Internal(String),
 }
 
@@ -13,6 +14,7 @@ impl std::fmt::Display for AppError {
         match self {
             AppError::Database(e) => write!(f, "Database error: {e}"),
             AppError::NotFound => write!(f, "Not found"),
+            AppError::Forbidden => write!(f, "Forbidden"),
             AppError::Internal(msg) => write!(f, "Internal error: {msg}"),
         }
     }
@@ -23,6 +25,7 @@ impl IntoResponse for AppError {
         let (status, kind) = match &self {
             AppError::Database(_) => (StatusCode::INTERNAL_SERVER_ERROR, "database"),
             AppError::NotFound => (StatusCode::NOT_FOUND, "not_found"),
+            AppError::Forbidden => (StatusCode::FORBIDDEN, "forbidden"),
             AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
         };
         tracing::error!(

@@ -52,6 +52,34 @@ impl AppConfig {
         dirs
     }
 
+    pub fn permanent_dir_for_media_dir(media_dir: &std::path::Path) -> Option<PathBuf> {
+        let parent = media_dir.parent()?;
+        let name = media_dir.file_name()?;
+        let mut permanent_name = OsString::from(name);
+        permanent_name.push("_permanent");
+        Some(parent.join(permanent_name))
+    }
+
+    pub fn permanent_dir_for_media_path(&self, media_path: &std::path::Path) -> Option<PathBuf> {
+        let best_match = self
+            .media_dirs
+            .iter()
+            .filter(|dir| media_path.starts_with(dir))
+            .max_by_key(|dir| dir.components().count())?;
+        Self::permanent_dir_for_media_dir(best_match)
+    }
+
+    pub fn all_permanent_dirs(&self) -> Vec<PathBuf> {
+        let mut dirs: Vec<PathBuf> = self
+            .media_dirs
+            .iter()
+            .filter_map(|d| Self::permanent_dir_for_media_dir(d))
+            .collect();
+        dirs.sort();
+        dirs.dedup();
+        dirs
+    }
+
     pub fn load(path: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let content = std::fs::read_to_string(path)
             .map_err(|e| format!("failed to read config file '{path}': {e}"))?;
@@ -62,6 +90,13 @@ impl AppConfig {
             if Self::trash_dir_for_media_dir(media_dir).is_none() {
                 return Err(format!(
                     "media_dir {:?} has no valid parent or name to derive trash directory",
+                    media_dir
+                )
+                .into());
+            }
+            if Self::permanent_dir_for_media_dir(media_dir).is_none() {
+                return Err(format!(
+                    "media_dir {:?} has no valid parent or name to derive permanent directory",
                     media_dir
                 )
                 .into());

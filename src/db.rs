@@ -2,6 +2,44 @@ use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use std::str::FromStr;
 
+const MIGRATIONS: [(&str, &str); 2] = [
+    ("001_initial", include_str!("../migrations/001_initial.sql")),
+    (
+        "002_add_permanent_media",
+        include_str!("../migrations/002_add_permanent_media.sql"),
+    ),
+];
+
+pub async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS schema_migrations (
+            version TEXT PRIMARY KEY,
+            applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(pool)
+    .await?;
+
+    for (version, sql) in MIGRATIONS {
+        let already_applied: Option<(String,)> =
+            sqlx::query_as("SELECT version FROM schema_migrations WHERE version = ?")
+                .bind(version)
+                .fetch_optional(pool)
+                .await?;
+        if already_applied.is_some() {
+            continue;
+        }
+
+        sqlx::raw_sql(sql).execute(pool).await?;
+        sqlx::query("INSERT INTO schema_migrations (version) VALUES (?)")
+            .bind(version)
+            .execute(pool)
+            .await?;
+    }
+
+    Ok(())
+}
+
 pub async fn init_pool(database_url: &str) -> Result<SqlitePool, sqlx::Error> {
     let options = SqliteConnectOptions::from_str(database_url)?
         .create_if_missing(true)
@@ -12,10 +50,7 @@ pub async fn init_pool(database_url: &str) -> Result<SqlitePool, sqlx::Error> {
         .connect_with(options)
         .await?;
 
-    // Run migrations
-    sqlx::raw_sql(include_str!("../migrations/001_initial.sql"))
-        .execute(&pool)
-        .await?;
+    run_migrations(&pool).await?;
 
     Ok(pool)
 }

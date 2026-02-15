@@ -7,7 +7,7 @@ use serde::Deserialize;
 use crate::auth::middleware::AdminUser;
 use crate::auth::session;
 use crate::error::AppError;
-use crate::models::{mark, media, user};
+use crate::models::{mark, media, persistent, user};
 use crate::routes::AppState;
 use crate::templates;
 use crate::templates::{AdminDashboardTemplate, AdminTrashTemplate, AdminUsersTemplate};
@@ -86,6 +86,18 @@ async fn delete_user(
     _admin: AdminUser,
     Path(id): Path<i64>,
 ) -> Result<Response, AppError> {
+    let owned_persistent = persistent::list_media_ids_by_owner(&state.pool, id).await?;
+    for media_id in owned_persistent {
+        crate::persistent::restore_from_permanent_unchecked(
+            &state.pool,
+            media_id,
+            &state.config,
+            state.dry_run,
+        )
+        .await
+        .map_err(|e| AppError::Internal(format!("failed to restore persistent media: {e}")))?;
+    }
+
     user::delete(&state.pool, id).await?;
 
     // After deleting a user, check if any media now has all users marked

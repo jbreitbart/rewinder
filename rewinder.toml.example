@@ -11,6 +11,10 @@ media_dirs = [
 # Trash directories are derived automatically from media_dirs:
 # "/media/Movies"   -> "/media/Movies_trash"
 # "/media/TV Shows" -> "/media/TV Shows_trash"
+#
+# Permanent directories are also derived automatically:
+# "/media/Movies"   -> "/media/Movies_permanent"
+# "/media/TV Shows" -> "/media/TV Shows_permanent"
 grace_period_days = 7
 cleanup_interval_hours = 1       # Set to 0 to disable automatic cleanup
 

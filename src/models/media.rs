@@ -25,6 +25,28 @@ pub async fn list_by_type(pool: &SqlitePool, media_type: &str) -> Result<Vec<Med
     .await
 }
 
+pub async fn list_visible_for_user(
+    pool: &SqlitePool,
+    media_type: &str,
+    user_id: i64,
+) -> Result<Vec<Media>, sqlx::Error> {
+    sqlx::query_as::<_, Media>(
+        "SELECT m.*
+         FROM media m
+         LEFT JOIN persistent_media pm ON pm.media_id = m.id
+         WHERE m.media_type = ?
+           AND (
+                m.status = 'active'
+                OR (m.status = 'permanent' AND pm.user_id = ?)
+           )
+         ORDER BY m.title, m.season",
+    )
+    .bind(media_type)
+    .bind(user_id)
+    .fetch_all(pool)
+    .await
+}
+
 pub async fn get_by_id(pool: &SqlitePool, id: i64) -> Result<Option<Media>, sqlx::Error> {
     sqlx::query_as::<_, Media>("SELECT * FROM media WHERE id = ?")
         .bind(id)
@@ -132,6 +154,14 @@ pub async fn set_trashed(pool: &SqlitePool, id: i64) -> Result<(), sqlx::Error> 
 
 pub async fn set_active(pool: &SqlitePool, id: i64) -> Result<(), sqlx::Error> {
     sqlx::query("UPDATE media SET status = 'active', trashed_at = NULL WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+pub async fn set_permanent(pool: &SqlitePool, id: i64) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE media SET status = 'permanent', trashed_at = NULL WHERE id = ?")
         .bind(id)
         .execute(pool)
         .await?;

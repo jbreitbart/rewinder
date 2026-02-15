@@ -10,6 +10,7 @@
     --primary-hover: #7c6cf7;
     --danger: #e74c3c;
     --success: #2ecc71;
+    --success-hover: #4ade80;
 }
 
 body {
@@ -103,6 +104,8 @@ h2 { margin-bottom: 1rem; }
 
 .btn-primary { background: var(--primary); border-color: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-hover); }
+.btn-success { background: var(--success); border-color: var(--success); color: #fff; }
+.btn-success:hover { background: var(--success-hover); }
 
 .btn-danger { background: var(--danger); border-color: var(--danger); color: #fff; }
 .btn-danger:hover { opacity: 0.9; }
@@ -114,6 +117,22 @@ h2 { margin-bottom: 1rem; }
 .btn-full { width: 100%; }
 .btn-link { background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: inherit; }
 .btn-link:hover { color: var(--text); }
+.row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.pill {
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.4rem;
+    border: 1px solid var(--success);
+    border-radius: 999px;
+    color: var(--success);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
 
 /* Auth pages */
 .auth-container { max-width: 400px; margin: 4rem auto; padding: 2rem; background: var(--surface); border-radius: 12px; border: 1px solid var(--border); }

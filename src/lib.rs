@@ -6,6 +6,7 @@ pub mod config;
 pub mod db;
 pub mod error;
 pub mod models;
+pub mod persistent;
 pub mod routes;
 pub mod scanner;
 pub mod templates;
