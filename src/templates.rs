@@ -71,7 +71,7 @@ impl IntoResponse for MoviesTemplate {
 pub struct TvTemplate {
     pub username: String,
     pub is_admin: bool,
-    pub items: Vec<MediaRow>,
+    pub series_groups: Vec<TvSeriesGroup>,
     pub show_marked: bool,
     pub sort_by: String,
     pub sort_dir: String,
@@ -81,6 +81,13 @@ impl IntoResponse for TvTemplate {
     fn into_response(self) -> Response {
         render_template(&self)
     }
+}
+
+pub struct TvSeriesGroup {
+    pub title: String,
+    pub seasons: Vec<MediaRow>,
+    pub marked_count: i64,
+    pub total_count: i64,
 }
 
 #[derive(Template)]

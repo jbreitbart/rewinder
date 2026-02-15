@@ -33,10 +33,29 @@
             </tr>
         </thead>
         <tbody>
-            {% for item in items %}
+            {% for group in series_groups %}
+            <tr class="series-group-row">
+                <td colspan="{% if is_admin %}6{% else %}5{% endif %}">
+                    <div class="series-group-header">
+                        <strong>{{ group.title }}</strong>
+                        <div class="series-group-actions">
+                            <button class="btn btn-sm btn-primary series-group-mark-all"
+                                    hx-post="/tv/series/{{ group.title|urlencode_strict }}/mark-all?show_marked={% if show_marked %}true{% else %}false{% endif %}&sort={{ sort_by }}&dir={{ sort_dir }}"
+                                    hx-target="main"
+                                    hx-select="main"
+                                    hx-swap="outerHTML"
+                                    hx-push-url="true">
+                                Mark All Seasons
+                            </button>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+            {% for item in group.seasons %}
             {% include "partials/media_row.html" %}
             {% endfor %}
-            {% if items.len() == 0 %}
+            {% endfor %}
+            {% if series_groups.len() == 0 %}
             <tr><td colspan="{% if is_admin %}6{% else %}5{% endif %}" class="empty">No TV shows found</td></tr>
             {% endif %}
         </tbody>

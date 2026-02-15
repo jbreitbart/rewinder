@@ -116,3 +116,53 @@ async fn tv_sort_by_season_desc() {
     let season1_idx = body.find("Season 1").unwrap();
     assert!(season2_idx < season1_idx, "expected Season 2 before Season 1");
 }
+
+#[tokio::test]
+async fn tv_groups_series_visually() {
+    let pool = test_pool().await;
+    let config = test_config(vec![]);
+    let (user_id, _) = create_test_user(&pool, "alice", false).await;
+    let cookie = login_cookie(&pool, user_id).await;
+
+    insert_tv_season(&pool, "Breaking Bad", 1, "/tv/Breaking Bad/Season 1").await;
+    insert_tv_season(&pool, "Breaking Bad", 2, "/tv/Breaking Bad/Season 2").await;
+
+    let app = test_app(pool, config, true);
+    let response = app.oneshot(get_with_cookie("/tv", &cookie)).await.unwrap();
+
+    let body = body_string(response).await;
+    assert!(body.contains("series-group-row"));
+    assert!(body.contains("Mark All Seasons"));
+}
+
+#[tokio::test]
+async fn tv_mark_all_series_marks_every_season_for_user() {
+    let pool = test_pool().await;
+    let config = test_config(vec![]);
+    let (user_id, _) = create_test_user(&pool, "alice", false).await;
+    create_test_user(&pool, "bob", false).await; // prevent auto-trash
+    let cookie = login_cookie(&pool, user_id).await;
+
+    let s1 = insert_tv_season(&pool, "Breaking Bad", 1, "/tv/Breaking Bad/Season 1").await;
+    let s2 = insert_tv_season(&pool, "Breaking Bad", 2, "/tv/Breaking Bad/Season 2").await;
+
+    let app = test_app(pool.clone(), config, true);
+    let response = app
+        .oneshot(post_form_with_cookie(
+            "/tv/series/Breaking%20Bad/mark-all",
+            "",
+            &cookie,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    assert_eq!(
+        rewinder::models::mark::mark_count(&pool, s1).await.unwrap(),
+        1
+    );
+    assert_eq!(
+        rewinder::models::mark::mark_count(&pool, s2).await.unwrap(),
+        1
+    );
+}
