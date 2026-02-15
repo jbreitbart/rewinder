@@ -75,6 +75,35 @@ fn validate_storage_access(
         ensure_dir_readable_and_writable(&trash_dir)?;
     }
 
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+
+        for media_dir in &config.media_dirs {
+            let trash_dir = AppConfig::trash_dir_for_media_dir(media_dir).ok_or_else(|| {
+                format!(
+                    "failed to derive trash directory for media_dir {}",
+                    media_dir.display()
+                )
+            })?;
+            let media_dev = std::fs::metadata(media_dir)
+                .map_err(|e| format!("failed to stat media_dir {}: {e}", media_dir.display()))?
+                .dev();
+            let trash_dev = std::fs::metadata(&trash_dir)
+                .map_err(|e| format!("failed to stat trash_dir {}: {e}", trash_dir.display()))?
+                .dev();
+
+            if media_dev != trash_dev {
+                return Err(format!(
+                    "media_dir {} and trash_dir {} are on different filesystems; refusing to start to avoid ownership changes during cross-device moves",
+                    media_dir.display(),
+                    trash_dir.display()
+                )
+                .into());
+            }
+        }
+    }
+
     Ok(())
 }
 

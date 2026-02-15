@@ -1,3 +1,6 @@
+#[cfg(not(any(target_os = "linux", target_os = "macos")))]
+compile_error!("rewinder supports only Linux and macOS targets.");
+
 pub mod auth;
 pub mod config;
 pub mod db;

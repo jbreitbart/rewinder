@@ -9,37 +9,8 @@ pub fn trash_path_for(media_dir: &Path, trash_dir: &Path, original_path: &Path) 
     Some(trash_dir.join(relative))
 }
 
-fn copy_dir_recursive(src: &Path, dst: &Path) -> std::io::Result<()> {
-    std::fs::create_dir_all(dst)?;
-    for entry in std::fs::read_dir(src)? {
-        let entry = entry?;
-        let src_path = entry.path();
-        let dst_path = dst.join(entry.file_name());
-        let file_type = entry.file_type()?;
-        if file_type.is_dir() {
-            copy_dir_recursive(&src_path, &dst_path)?;
-        } else if file_type.is_file() {
-            std::fs::copy(&src_path, &dst_path)?;
-        }
-    }
-    Ok(())
-}
-
 fn move_path(src: &Path, dst: &Path) -> std::io::Result<()> {
-    match std::fs::rename(src, dst) {
-        Ok(_) => Ok(()),
-        Err(e) if e.kind() == std::io::ErrorKind::CrossesDevices => {
-            if src.is_dir() {
-                copy_dir_recursive(src, dst)?;
-                std::fs::remove_dir_all(src)?;
-            } else {
-                std::fs::copy(src, dst)?;
-                std::fs::remove_file(src)?;
-            }
-            Ok(())
-        }
-        Err(e) => Err(e),
-    }
+    std::fs::rename(src, dst)
 }
 
 pub async fn move_to_trash(
