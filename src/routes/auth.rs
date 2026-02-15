@@ -60,15 +60,16 @@ async fn login_handler(
         .into_response();
     }
 
-    let token = match session::create(&state.pool, user.id, session::DEFAULT_SESSION_TTL_HOURS).await {
-        Ok(t) => t,
-        Err(_) => {
-            return LoginTemplate {
-                error: Some("Internal error".into()),
+    let token =
+        match session::create(&state.pool, user.id, session::DEFAULT_SESSION_TTL_HOURS).await {
+            Ok(t) => t,
+            Err(_) => {
+                return LoginTemplate {
+                    error: Some("Internal error".into()),
+                }
+                .into_response();
             }
-            .into_response();
-        }
-    };
+        };
 
     let cookie = Cookie::build(("session", token))
         .path("/")
@@ -78,25 +79,17 @@ async fn login_handler(
     (jar.add(cookie), Redirect::to("/movies")).into_response()
 }
 
-async fn logout_handler(
-    State(state): State<AppState>,
-    jar: CookieJar,
-) -> Response {
+async fn logout_handler(State(state): State<AppState>, jar: CookieJar) -> Response {
     if let Some(cookie) = jar.get("session") {
         let _ = session::delete(&state.pool, cookie.value()).await;
     }
 
-    let removal = Cookie::build(("session", ""))
-        .path("/")
-        .http_only(true);
+    let removal = Cookie::build(("session", "")).path("/").http_only(true);
 
     (jar.remove(removal), Redirect::to("/login")).into_response()
 }
 
-async fn invite_page(
-    State(state): State<AppState>,
-    Path(token): Path<String>,
-) -> Response {
+async fn invite_page(State(state): State<AppState>, Path(token): Path<String>) -> Response {
     match user::get_by_invite_token(&state.pool, &token).await {
         Ok(Some(u)) => SetupPasswordTemplate {
             token,
@@ -155,7 +148,10 @@ async fn invite_handler(
         }
     };
 
-    if user::set_password(&state.pool, user.id, &hash).await.is_err() {
+    if user::set_password(&state.pool, user.id, &hash)
+        .await
+        .is_err()
+    {
         return SetupPasswordTemplate {
             token,
             username: user.username,
@@ -165,10 +161,11 @@ async fn invite_handler(
     }
 
     // Auto-login
-    let session_token = match session::create(&state.pool, user.id, session::DEFAULT_SESSION_TTL_HOURS).await {
-        Ok(t) => t,
-        Err(_) => return Redirect::to("/login").into_response(),
-    };
+    let session_token =
+        match session::create(&state.pool, user.id, session::DEFAULT_SESSION_TTL_HOURS).await {
+            Ok(t) => t,
+            Err(_) => return Redirect::to("/login").into_response(),
+        };
 
     let cookie = Cookie::build(("session", session_token))
         .path("/")

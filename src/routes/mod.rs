@@ -3,10 +3,10 @@ pub mod auth;
 pub mod movies;
 pub mod tv;
 
+use crate::config::AppConfig;
 use axum::Router;
 use sqlx::SqlitePool;
 use std::sync::Arc;
-use crate::config::AppConfig;
 
 #[derive(Clone)]
 pub struct AppState {

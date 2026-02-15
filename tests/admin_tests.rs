@@ -80,7 +80,12 @@ async fn admin_delete_user() {
 
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
     assert_eq!(
-        response.headers().get("location").unwrap().to_str().unwrap(),
+        response
+            .headers()
+            .get("location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
         "/admin/users"
     );
 }
@@ -126,7 +131,12 @@ async fn admin_rescue_from_trash() {
 
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
     assert_eq!(
-        response.headers().get("location").unwrap().to_str().unwrap(),
+        response
+            .headers()
+            .get("location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
         "/admin/trash"
     );
 }

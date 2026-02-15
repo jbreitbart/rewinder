@@ -27,7 +27,10 @@ pub async fn start(
             watcher.watch(dir, RecursiveMode::NonRecursive)?;
             tracing::info!("Watching directory: {}", dir.display());
         } else {
-            tracing::warn!("Media directory does not exist, skipping watch: {}", dir.display());
+            tracing::warn!(
+                "Media directory does not exist, skipping watch: {}",
+                dir.display()
+            );
         }
     }
 

@@ -106,7 +106,11 @@ pub async fn rescue_from_trash(
         .ok_or_else(|| format!("failed to derive trash path for {}", item.path))?;
 
     if dry_run {
-        tracing::info!("DRY RUN: would rescue {} → {}", trash_location.display(), item.path);
+        tracing::info!(
+            "DRY RUN: would rescue {} → {}",
+            trash_location.display(),
+            item.path
+        );
     } else if trash_location.exists() {
         // Ensure parent directory exists
         if let Some(parent) = original_path.parent() {

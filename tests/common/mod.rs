@@ -11,7 +11,7 @@ use std::sync::Arc;
 use tower::ServiceExt;
 
 use rewinder::config::AppConfig;
-use rewinder::routes::{AppState, build_router};
+use rewinder::routes::{build_router, AppState};
 
 pub async fn test_pool() -> SqlitePool {
     let options = SqliteConnectOptions::new()
@@ -59,11 +59,7 @@ pub fn test_app(pool: SqlitePool, config: AppConfig, dry_run: bool) -> Router {
     build_router(state)
 }
 
-pub async fn create_test_user(
-    pool: &SqlitePool,
-    username: &str,
-    is_admin: bool,
-) -> (i64, String) {
+pub async fn create_test_user(pool: &SqlitePool, username: &str, is_admin: bool) -> (i64, String) {
     let password = "testpass123";
     let hash = rewinder::auth::hash_password(password).expect("hash failed");
     let id = rewinder::models::user::create(pool, username, is_admin, None)
@@ -89,16 +85,21 @@ pub async fn insert_movie(pool: &SqlitePool, title: &str, path: &str) -> i64 {
 }
 
 pub async fn insert_tv_season(pool: &SqlitePool, title: &str, season: i64, path: &str) -> i64 {
-    rewinder::models::media::upsert(pool, "tv_season", title, None, Some(season), path, 2_000_000)
-        .await
-        .expect("insert tv season failed")
+    rewinder::models::media::upsert(
+        pool,
+        "tv_season",
+        title,
+        None,
+        Some(season),
+        path,
+        2_000_000,
+    )
+    .await
+    .expect("insert tv season failed")
 }
 
 pub fn get(uri: &str) -> Request<Body> {
-    Request::builder()
-        .uri(uri)
-        .body(Body::empty())
-        .unwrap()
+    Request::builder().uri(uri).body(Body::empty()).unwrap()
 }
 
 pub fn get_with_cookie(uri: &str, cookie: &str) -> Request<Body> {
@@ -150,7 +151,8 @@ pub async fn body_string(response: axum::http::Response<Body>) -> String {
 #[allow(dead_code)]
 pub async fn assert_redirect(response: &axum::http::Response<Body>, expected_location: &str) {
     assert!(
-        response.status() == StatusCode::SEE_OTHER || response.status() == StatusCode::TEMPORARY_REDIRECT,
+        response.status() == StatusCode::SEE_OTHER
+            || response.status() == StatusCode::TEMPORARY_REDIRECT,
         "expected redirect status, got {}",
         response.status()
     );

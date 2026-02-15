@@ -28,7 +28,10 @@ pub fn verify_password(password: &str, hash: &str) -> bool {
         .is_ok()
 }
 
-pub async fn seed_admin(pool: &SqlitePool, username: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn seed_admin(
+    pool: &SqlitePool,
+    username: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if user::get_by_username(pool, username).await?.is_some() {
         tracing::info!("Admin user '{username}' already exists, skipping seed");
         return Ok(());

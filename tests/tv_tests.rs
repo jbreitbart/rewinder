@@ -16,10 +16,7 @@ async fn list_tv_shows_seasons() {
     insert_tv_season(&pool, "Breaking Bad", 2, "/tv/Breaking Bad/Season 2").await;
 
     let app = test_app(pool, config, true);
-    let response = app
-        .oneshot(get_with_cookie("/tv", &cookie))
-        .await
-        .unwrap();
+    let response = app.oneshot(get_with_cookie("/tv", &cookie)).await.unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
     let body = body_string(response).await;
@@ -57,10 +54,7 @@ async fn mark_unmark_tv() {
     // Unmark
     let app = test_app(pool.clone(), config, true);
     let response = app
-        .oneshot(delete_with_cookie(
-            &format!("/tv/{tv_id}/mark"),
-            &cookie,
-        ))
+        .oneshot(delete_with_cookie(&format!("/tv/{tv_id}/mark"), &cookie))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);

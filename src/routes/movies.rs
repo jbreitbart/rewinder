@@ -12,7 +12,10 @@ use crate::templates::{MediaRow, MediaRowPartial, MoviesTemplate};
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route("/", get(|| async { axum::response::Redirect::to("/movies") }))
+        .route(
+            "/",
+            get(|| async { axum::response::Redirect::to("/movies") }),
+        )
         .route("/movies", get(list_movies))
         .route("/movies/{id}/mark", post(mark_movie).delete(unmark_movie))
 }

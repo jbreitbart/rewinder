@@ -20,7 +20,9 @@ struct Cli {
     dry_run: bool,
 }
 
-fn ensure_dir_readable_and_writable(path: &Path) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+fn ensure_dir_readable_and_writable(
+    path: &Path,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if !path.is_dir() {
         return Err(format!("path is not a directory: {}", path.display()).into());
     }
@@ -44,13 +46,19 @@ fn ensure_dir_readable_and_writable(path: &Path) -> Result<(), Box<dyn std::erro
         .write(true)
         .open(&probe)
         .map_err(|e| format!("directory not writable ({}): {e}", path.display()))?;
-    std::fs::remove_file(&probe)
-        .map_err(|e| format!("failed to clean up permission probe {}: {e}", probe.display()))?;
+    std::fs::remove_file(&probe).map_err(|e| {
+        format!(
+            "failed to clean up permission probe {}: {e}",
+            probe.display()
+        )
+    })?;
 
     Ok(())
 }
 
-fn validate_storage_access(config: &AppConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+fn validate_storage_access(
+    config: &AppConfig,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     for media_dir in &config.media_dirs {
         ensure_dir_readable_and_writable(media_dir)?;
     }
@@ -87,7 +95,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let dry_run = cli.dry_run;
     if dry_run {
         tracing::warn!("*** DRY-RUN MODE ACTIVE — no files will be moved or deleted ***");
-        tracing::warn!("Database state will diverge from disk. Back up your database before using this mode.");
+        tracing::warn!(
+            "Database state will diverge from disk. Back up your database before using this mode."
+        );
     }
     tracing::info!("Loaded config from {}", cli.config);
 
@@ -132,7 +142,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     tracing::error!("Missing trash cleanup error: {e}");
                 }
                 if let Err(e) =
-                    trash::cleanup_expired(&cleanup_pool, &cleanup_config, grace_period, dry_run).await
+                    trash::cleanup_expired(&cleanup_pool, &cleanup_config, grace_period, dry_run)
+                        .await
                 {
                     tracing::error!("Trash cleanup error: {e}");
                 }
@@ -151,8 +162,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         dry_run,
     };
 
-    let app = rewinder::routes::build_router(state)
-        .nest_service("/static", ServeDir::new("static"));
+    let app =
+        rewinder::routes::build_router(state).nest_service("/static", ServeDir::new("static"));
 
     let listener = tokio::net::TcpListener::bind(&config.listen_addr).await?;
     tracing::info!("Listening on {}", config.listen_addr);

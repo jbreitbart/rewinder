@@ -14,7 +14,12 @@ async fn unauthenticated_redirects_to_login() {
     let response = app.oneshot(get("/movies")).await.unwrap();
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
     assert_eq!(
-        response.headers().get("location").unwrap().to_str().unwrap(),
+        response
+            .headers()
+            .get("location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
         "/login"
     );
 }
@@ -47,7 +52,12 @@ async fn login_with_valid_credentials() {
 
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
     assert_eq!(
-        response.headers().get("location").unwrap().to_str().unwrap(),
+        response
+            .headers()
+            .get("location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
         "/movies"
     );
     // Should have a Set-Cookie header
@@ -118,10 +128,7 @@ async fn invite_flow() {
 
     // GET the invite page
     let app = test_app(pool.clone(), config.clone(), true);
-    let response = app
-        .oneshot(get(&format!("/invite/{token}")))
-        .await
-        .unwrap();
+    let response = app.oneshot(get(&format!("/invite/{token}"))).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
     let body = body_string(response).await;
     assert!(body.contains("bob"));
@@ -139,7 +146,12 @@ async fn invite_flow() {
     // Should auto-login and redirect
     assert_eq!(response.status(), StatusCode::SEE_OTHER);
     assert_eq!(
-        response.headers().get("location").unwrap().to_str().unwrap(),
+        response
+            .headers()
+            .get("location")
+            .unwrap()
+            .to_str()
+            .unwrap(),
         "/movies"
     );
     assert!(response.headers().get("set-cookie").is_some());

@@ -10,7 +10,11 @@ pub fn generate_token() -> String {
     URL_SAFE_NO_PAD.encode(bytes)
 }
 
-pub async fn create(pool: &SqlitePool, user_id: i64, ttl_hours: u64) -> Result<String, sqlx::Error> {
+pub async fn create(
+    pool: &SqlitePool,
+    user_id: i64,
+    ttl_hours: u64,
+) -> Result<String, sqlx::Error> {
     let token = generate_token();
     sqlx::query(
         "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, datetime('now', ? || ' hours'))",

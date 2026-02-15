@@ -17,14 +17,20 @@ pub async fn get_by_id(pool: &SqlitePool, id: i64) -> Result<Option<User>, sqlx:
         .await
 }
 
-pub async fn get_by_username(pool: &SqlitePool, username: &str) -> Result<Option<User>, sqlx::Error> {
+pub async fn get_by_username(
+    pool: &SqlitePool,
+    username: &str,
+) -> Result<Option<User>, sqlx::Error> {
     sqlx::query_as::<_, User>("SELECT * FROM users WHERE username = ?")
         .bind(username)
         .fetch_optional(pool)
         .await
 }
 
-pub async fn get_by_invite_token(pool: &SqlitePool, token: &str) -> Result<Option<User>, sqlx::Error> {
+pub async fn get_by_invite_token(
+    pool: &SqlitePool,
+    token: &str,
+) -> Result<Option<User>, sqlx::Error> {
     sqlx::query_as::<_, User>("SELECT * FROM users WHERE invite_token = ?")
         .bind(token)
         .fetch_optional(pool)
@@ -43,14 +49,13 @@ pub async fn create(
     is_admin: bool,
     invite_token: Option<&str>,
 ) -> Result<i64, sqlx::Error> {
-    let result = sqlx::query(
-        "INSERT INTO users (username, is_admin, invite_token) VALUES (?, ?, ?)",
-    )
-    .bind(username)
-    .bind(is_admin)
-    .bind(invite_token)
-    .execute(pool)
-    .await?;
+    let result =
+        sqlx::query("INSERT INTO users (username, is_admin, invite_token) VALUES (?, ?, ?)")
+            .bind(username)
+            .bind(is_admin)
+            .bind(invite_token)
+            .execute(pool)
+            .await?;
     Ok(result.last_insert_rowid())
 }
 

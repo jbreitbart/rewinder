@@ -35,7 +35,10 @@ impl IntoResponse for AuthRejection {
     }
 }
 
-async fn extract_auth_user(parts: &mut Parts, pool: &SqlitePool) -> Result<AuthUser, AuthRejection> {
+async fn extract_auth_user(
+    parts: &mut Parts,
+    pool: &SqlitePool,
+) -> Result<AuthUser, AuthRejection> {
     let jar = CookieJar::from_headers(&parts.headers);
 
     let token = jar
@@ -63,7 +66,10 @@ async fn extract_auth_user(parts: &mut Parts, pool: &SqlitePool) -> Result<AuthU
 impl FromRequestParts<AppState> for AuthUser {
     type Rejection = AuthRejection;
 
-    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
         extract_auth_user(parts, &state.pool).await
     }
 }
@@ -71,7 +77,10 @@ impl FromRequestParts<AppState> for AuthUser {
 impl FromRequestParts<AppState> for AdminUser {
     type Rejection = AuthRejection;
 
-    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
         let user = AuthUser::from_request_parts(parts, state).await?;
         if !user.is_admin {
             return Err(AuthRejection::Redirect(Redirect::to("/")));

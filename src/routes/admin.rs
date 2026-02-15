@@ -91,7 +91,8 @@ async fn delete_user(
     // After deleting a user, check if any media now has all users marked
     let eligible = mark::media_ids_with_all_marked(&state.pool).await?;
     for media_id in eligible {
-        let _ = crate::trash::check_and_trash(&state.pool, media_id, &state.config, state.dry_run).await;
+        let _ = crate::trash::check_and_trash(&state.pool, media_id, &state.config, state.dry_run)
+            .await;
     }
 
     Ok(Redirect::to("/admin/users").into_response())

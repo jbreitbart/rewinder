@@ -16,10 +16,7 @@ pub struct Media {
     pub last_seen: String,
 }
 
-pub async fn list_by_type(
-    pool: &SqlitePool,
-    media_type: &str,
-) -> Result<Vec<Media>, sqlx::Error> {
+pub async fn list_by_type(pool: &SqlitePool, media_type: &str) -> Result<Vec<Media>, sqlx::Error> {
     sqlx::query_as::<_, Media>(
         "SELECT * FROM media WHERE media_type = ? AND status = 'active' ORDER BY title, season",
     )
@@ -106,12 +103,10 @@ pub async fn mark_gone_by_path(pool: &SqlitePool, path: &str) -> Result<(), sqlx
 }
 
 pub async fn set_trashed(pool: &SqlitePool, id: i64) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        "UPDATE media SET status = 'trashed', trashed_at = datetime('now') WHERE id = ?",
-    )
-    .bind(id)
-    .execute(pool)
-    .await?;
+    sqlx::query("UPDATE media SET status = 'trashed', trashed_at = datetime('now') WHERE id = ?")
+        .bind(id)
+        .execute(pool)
+        .await?;
     Ok(())
 }
 

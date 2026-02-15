@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
-use sqlx::SqlitePool;
 use crate::models::media;
+use sqlx::SqlitePool;
+use std::path::{Path, PathBuf};
 
 /// Parse a movie directory name like "Inception (2010)" → ("Inception", Some(2010))
 pub fn parse_movie_dir(name: &str) -> (String, Option<i64>) {
@@ -84,7 +84,16 @@ pub async fn scan_directory(
             for (season_num, season_path) in &seasons {
                 let path_str = season_path.to_string_lossy().to_string();
                 let size = dir_size(season_path);
-                media::upsert(pool, "tv_season", &dir_name, None, Some(*season_num), &path_str, size).await?;
+                media::upsert(
+                    pool,
+                    "tv_season",
+                    &dir_name,
+                    None,
+                    Some(*season_num),
+                    &path_str,
+                    size,
+                )
+                .await?;
                 seen_paths.push(path_str);
             }
         } else {
