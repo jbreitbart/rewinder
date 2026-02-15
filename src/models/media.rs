@@ -80,10 +80,14 @@ pub async fn mark_gone_except(pool: &SqlitePool, seen_paths: &[String]) -> Resul
     }
 
     // Use a temp table to avoid hitting SQLITE_MAX_VARIABLE_NUMBER with large libraries.
+    // TEMP tables are connection-local in SQLite, so all statements must run on one connection.
+    let mut conn = pool.acquire().await?;
     sqlx::query("CREATE TEMP TABLE IF NOT EXISTS _seen_paths (path TEXT NOT NULL)")
-        .execute(pool)
+        .execute(&mut *conn)
         .await?;
-    sqlx::query("DELETE FROM _seen_paths").execute(pool).await?;
+    sqlx::query("DELETE FROM _seen_paths")
+        .execute(&mut *conn)
+        .await?;
 
     for chunk in seen_paths.chunks(500) {
         let placeholders: Vec<&str> = chunk.iter().map(|_| "(?)").collect();
@@ -95,16 +99,18 @@ pub async fn mark_gone_except(pool: &SqlitePool, seen_paths: &[String]) -> Resul
         for path in chunk {
             q = q.bind(path);
         }
-        q.execute(pool).await?;
+        q.execute(&mut *conn).await?;
     }
 
     sqlx::query(
         "UPDATE media SET status = 'gone' WHERE status = 'active' AND path NOT IN (SELECT path FROM _seen_paths)",
     )
-    .execute(pool)
+    .execute(&mut *conn)
     .await?;
 
-    sqlx::query("DELETE FROM _seen_paths").execute(pool).await?;
+    sqlx::query("DELETE FROM _seen_paths")
+        .execute(&mut *conn)
+        .await?;
     Ok(())
 }
 
