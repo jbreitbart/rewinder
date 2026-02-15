@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Movies — Rewinder{% endblock %}
+{% block body %}
+{% include "partials/nav.html" %}
+<main>
+    <div class="page-header">
+        <h2>Movies</h2>
+        <label class="toggle">
+            <input type="checkbox"
+                   {% if show_marked %}checked{% endif %}
+                   hx-get="/movies"
+                   hx-target="main"
+                   hx-select="main"
+                   hx-swap="outerHTML"
+                   hx-vals='js:{"show_marked": event.target.checked ? "true" : "false"}'
+                   hx-push-url="true">
+            Show marked
+        </label>
+    </div>
+    <table class="media-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Year</th>
+                <th>Size</th>
+                <th>Marked</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            {% include "partials/media_row.html" %}
+            {% endfor %}
+            {% if items.len() == 0 %}
+            <tr><td colspan="5" class="empty">No movies found</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</main>
+{% endblock %}

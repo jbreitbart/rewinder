@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Trash — Rewinder{% endblock %}
+{% block body %}
+{% include "partials/nav.html" %}
+<main>
+    <h2>Trash</h2>
+    <table class="media-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Size</th>
+                <th>Trashed</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>
+                    {{ item.title }}
+                    {% match item.season %}{% when Some with (s) %} — Season {{ s }}{% when None %}{% endmatch %}
+                </td>
+                <td>{{ item.media_type }}</td>
+                <td>{{ crate::templates::format_size(item.size_bytes) }}</td>
+                <td>{% match item.trashed_at %}{% when Some with (t) %}{{ t }}{% when None %}-{% endmatch %}</td>
+                <td>
+                    <form method="post" action="/admin/trash/{{ item.id }}/rescue" style="display:inline">
+                        <button type="submit" class="btn btn-sm">Rescue</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if items.len() == 0 %}
+            <tr><td colspan="5" class="empty">Trash is empty</td></tr>
+            {% endif %}
+        </tbody>
+    </table>
+</main>
+{% endblock %}

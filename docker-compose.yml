@@ -1,0 +1,17 @@
+services:
+  rewinder:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./rewinder.toml:/app/rewinder.toml:ro
+      - rewinder-data:/data
+      - /path/to/media:/media:ro
+    logging:
+      driver: journald
+      options:
+        tag: rewinder
+    restart: unless-stopped
+
+volumes:
+  rewinder-data:

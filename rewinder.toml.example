@@ -1,0 +1,18 @@
+# rewinder.toml
+database_url = "sqlite:///data/rewinder.db?mode=rwc"
+listen_addr = "0.0.0.0:3000"
+session_ttl_hours = 720          # 30 days
+
+# Media directories to scan (Plex standard layout)
+media_dirs = [
+    "/media/Movies",
+    "/media/TV Shows",
+]
+
+# Trash directory — MUST be outside media_dirs (or Plex will index it)
+# Should be on the same filesystem as media_dirs for atomic moves
+trash_dir = "/data/trash"
+grace_period_days = 7
+
+# Optional: create admin user on first run
+initial_admin_user = "admin"

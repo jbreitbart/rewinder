@@ -1,0 +1,16 @@
+<nav>
+    <div class="nav-brand">Rewinder</div>
+    <div class="nav-links">
+        <a href="/movies">Movies</a>
+        <a href="/tv">TV Shows</a>
+        {% if is_admin %}
+        <a href="/admin">Admin</a>
+        {% endif %}
+    </div>
+    <div class="nav-user">
+        <span>{{ username }}</span>
+        <form method="post" action="/logout" style="display:inline">
+            <button type="submit" class="btn-link">Logout</button>
+        </form>
+    </div>
+</nav>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Login — Rewinder{% endblock %}
+{% block body %}
+<div class="auth-container">
+    <h1>Rewinder</h1>
+    <form method="post" action="/login">
+        {% match error %}{% when Some with (e) %}
+        <div class="alert alert-error">{{ e }}</div>
+        {% when None %}{% endmatch %}
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required autofocus>
+        </div>
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">Login</button>
+    </form>
+</div>
+{% endblock %}

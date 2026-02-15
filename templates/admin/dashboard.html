@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Admin — Rewinder{% endblock %}
+{% block body %}
+{% include "partials/nav.html" %}
+<main>
+    <h2>Admin Dashboard</h2>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ active_count }}</div>
+            <div class="stat-label">Active Media</div>
+            <div class="stat-detail">{{ active_size }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ trashed_count }}</div>
+            <div class="stat-label">Trashed</div>
+            <div class="stat-detail">{{ trashed_size }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ user_count }}</div>
+            <div class="stat-label">Users</div>
+        </div>
+    </div>
+    <div class="admin-actions">
+        <a href="/admin/users" class="btn">Manage Users</a>
+        <a href="/admin/trash" class="btn">View Trash</a>
+        <form method="post" action="/admin/scan" style="display:inline">
+            <button type="submit" class="btn">Rescan Media</button>
+        </form>
+    </div>
+</main>
+{% endblock %}

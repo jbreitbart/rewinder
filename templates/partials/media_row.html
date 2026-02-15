@@ -1,0 +1,27 @@
+<tr id="media-{{ item.media.id }}">
+    <td>{{ item.media.title }}</td>
+    {% if item.media.media_type == "movie" %}
+    <td>{% match item.media.year %}{% when Some with (y) %}{{ y }}{% when None %}{% endmatch %}</td>
+    {% else %}
+    <td>Season {% match item.media.season %}{% when Some with (s) %}{{ s }}{% when None %}0{% endmatch %}</td>
+    {% endif %}
+    <td>{{ crate::templates::format_size(item.media.size_bytes) }}</td>
+    <td>{{ item.mark_count }} / {{ item.total_users }}</td>
+    <td>
+        {% if item.marked %}
+        <button class="btn btn-sm btn-outline"
+                hx-delete="/{% if item.media.media_type == "movie" %}movies{% else %}tv{% endif %}/{{ item.media.id }}/mark"
+                hx-target="#media-{{ item.media.id }}"
+                hx-swap="outerHTML">
+            Unmark
+        </button>
+        {% else %}
+        <button class="btn btn-sm btn-primary"
+                hx-post="/{% if item.media.media_type == "movie" %}movies{% else %}tv{% endif %}/{{ item.media.id }}/mark"
+                hx-target="#media-{{ item.media.id }}"
+                hx-swap="outerHTML">
+            Mark Done
+        </button>
+        {% endif %}
+    </td>
+</tr>

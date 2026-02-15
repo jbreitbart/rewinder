@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Users — Rewinder{% endblock %}
+{% block body %}
+{% include "partials/nav.html" %}
+<main>
+    <h2>User Management</h2>
+
+    {% match invite_url %}{% when Some with (url) %}
+    <div class="alert alert-success">
+        Invite link: <code>{{ url }}</code>
+    </div>
+    {% when None %}{% endmatch %}
+
+    <form method="post" action="/admin/users" class="inline-form">
+        <input type="text" name="username" placeholder="Username" required>
+        <button type="submit" class="btn btn-primary">Create User</button>
+    </form>
+
+    <table class="media-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Admin</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>{% if user.is_admin %}Yes{% else %}No{% endif %}</td>
+                <td>{% match user.invite_token %}{% when Some with (_) %}Pending{% when None %}Active{% endmatch %}</td>
+                <td>{{ user.created_at }}</td>
+                <td>
+                    <form method="post" action="/admin/users/{{ user.id }}/delete" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger"
+                                onclick="return confirm('Delete user {{ user.username }}?')">
+                            Delete
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</main>
+{% endblock %}
