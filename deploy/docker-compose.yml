@@ -1,17 +1,16 @@
 services:
   rewinder:
-    build: .
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
     ports:
       - "3000:3000"
     volumes:
-      - ./rewinder.toml:/app/rewinder.toml:ro
-      - rewinder-data:/data
-      - /path/to/media:/media:ro
+      - ../rewinder.toml:/app/rewinder.toml:ro
+      - ./data:/data
+      - /path/to/media:/media
     logging:
       driver: journald
       options:
         tag: rewinder
     restart: unless-stopped
-
-volumes:
-  rewinder-data:

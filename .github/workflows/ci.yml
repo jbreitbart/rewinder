@@ -30,3 +30,40 @@ jobs:
 
       - name: Test
         run: cargo test --all-targets --all-features
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -f deploy/Dockerfile -t rewinder:ci .
+
+      - name: Verify binary runs
+        run: docker run --rm rewinder:ci --help
+
+  systemd:
+    name: Systemd Unit Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate unit files
+        run: |
+          for f in deploy/*.service; do
+            name=$(basename "$f")
+            echo "Checking $name ..."
+            # Verify the unit file parses without unknown directives.
+            # systemd-analyze verify returns non-zero when the binary is missing
+            # on the CI runner, so we filter to errors about our unit only.
+            output=$(systemd-analyze verify --man=no "$f" 2>&1 || true)
+            own=$(echo "$output" | grep "^$name:" || true)
+            echo "$own"
+            if echo "$own" | grep -qiE 'Unknown key|Failed to parse|Invalid'; then
+              echo "ERROR: $name has invalid directives"
+              exit 1
+            fi
+          done

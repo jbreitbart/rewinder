@@ -1,0 +1,29 @@
+[Unit]
+Description=Rewinder - Plex media storage manager
+After=network.target
+# Wait for the media mount point to be available.
+# Replace /mnt/media with your actual mount path.
+RequiresMountsFor=/mnt/media
+# Alternatively, depend on a specific mount unit:
+# After=mnt-media.mount
+# Requires=mnt-media.mount
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/share/rewinder
+ExecStart=/usr/local/bin/rewinder --config /etc/rewinder/rewinder.toml
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+# Allow read-write access to the database directory and media directories.
+# Adjust these paths to match your setup.
+ReadWritePaths=/var/lib/rewinder /mnt/media
+
+[Install]
+WantedBy=multi-user.target

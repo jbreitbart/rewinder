@@ -1,0 +1,23 @@
+[Unit]
+Description=Rewinder - Plex media storage manager
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/usr/local/share/rewinder
+ExecStart=/usr/local/bin/rewinder --config /etc/rewinder/rewinder.toml
+Restart=on-failure
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+# Allow read-write access to the database directory and media directories.
+# Adjust these paths to match your setup.
+ReadWritePaths=/var/lib/rewinder
+
+[Install]
+WantedBy=multi-user.target
