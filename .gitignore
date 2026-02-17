@@ -20,5 +20,11 @@ todo
 # Local config
 rewinder.toml
 
+# Runtime data
+deploy/data/
+*.db
+*.db-wal
+*.db-shm
+
 # Generated test fixtures
 tests/fixtures/media/

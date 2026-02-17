@@ -1,0 +1,6 @@
+target/
+deploy/data/
+*.db
+*.db-wal
+*.db-shm
+.git/

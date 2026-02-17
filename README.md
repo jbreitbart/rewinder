@@ -1,7 +1,5 @@
 # Rewinder
 
-Garbage collection for your files. Automatically move data that nobody needs to the trash.
-
 Rewinder is a web application for shared Plex servers. Users mark movies and TV seasons they no longer need. Once every user has marked an item, Rewinder moves it to a trash directory. Users can also persist items to a permanent directory to protect them from deletion.
 
 ## Configuration
